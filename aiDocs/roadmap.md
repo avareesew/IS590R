@@ -70,14 +70,21 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
           └── jobs/[id]/route.ts
   ```
 
-**Batch B — PDF smoke test**
+**Batch B — PDF smoke test (text layer)**
 - [ ] Implement `src/lib/utils/pdf.ts`: accepts one or more PDF file buffers, returns raw extracted text per document
-- [ ] Test on the UHP/Eco Auto Body training PDF
-- [ ] Verify: raw text includes sales scripts and objection sections
-- [ ] Verify: table of contents, commission tables, and image captions are present (to be filtered in Step 1)
+- [ ] Test on a fixture under `fixtures/training-docs/`
+- [ ] Verify: raw text includes sales scripts and objection sections where a text layer exists
+- [ ] Verify: table of contents, commission tables, and image captions are present when embedded as text (to be filtered in Step 1)
 - [ ] Log character count and rough section detection
 
-**Definition of Done:** `npm run dev` starts successfully; PDF text extraction runs without error on a multi-page, image-heavy document
+**Batch C — Multimodal capture (MVP, PRD FR-02b–02d)**
+- [ ] Rasterize each PDF page to an image (e.g. `pdfjs-dist` or Poppler); enforce max width/height for API limits
+- [ ] Call **Claude vision** per page (or implement **P1** selective pass: low text-density pages only — see PRD Q7)
+- [ ] Prompt: transcribe visible text + describe diagrams (flows, labels); output plain text blocks
+- [ ] Merge with text-layer output with **provenance** (`text_layer` vs `vision:page=N`); prefer text layer for duplicate copy
+- [ ] Fixture check: a PDF where **critical training content lives only in diagrams** still produces usable merged text for Step 1
+
+**Definition of Done:** `npm run dev` starts successfully; **merged** canonical text (text + vision) is produced without error on a multi-page, diagram-heavy document
 
 ---
 

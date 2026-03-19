@@ -161,6 +161,10 @@ The pipeline makes four sequential API calls per document. Token estimates are b
 
 > The cost floor for this tool is effectively the price of an API key. Even at 10× the estimated token usage, annual costs remain under $3,000 — still an order of magnitude below the savings delivered.
 
+### Multimodal ingestion (MVP) — cost note
+
+The **PRD v0.2** requires a **vision-capable LLM** pass over **rasterized PDF pages** so diagrams and image-embedded text are captured. That adds **per-page** image/API cost **before** the four pipeline steps above. The table in this section is **text-only baseline**; **re-benchmark** after choosing model, image size, and whether every page vs. low-text-only pages go to vision. See [PRD §5 G4, §7.1 FR-02b–02e, §14 Q7](./PRD.md).
+
 ---
 
 ## 6. User Personas

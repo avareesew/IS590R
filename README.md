@@ -6,5 +6,6 @@ Course project docs live in **`aiDocs/`**:
 - **[PRD](aiDocs/PRD.md)** — product requirements (primary deliverable)
 - **[Project proposal](aiDocs/project_proposal.md)** — problem, ROI, personas, stories, architecture
 - **[Roadmap](aiDocs/roadmap.md)** — phased build plan (detailed)
+- **[Changelog](aiDocs/CHANGELOG.md)** — doc/spec change history (e.g. PRD versions)
 
 **Test PDFs:** put example training documents under **`fixtures/training-docs/`** — see [fixtures/training-docs/README.md](fixtures/training-docs/README.md).

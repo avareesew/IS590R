@@ -5,7 +5,7 @@
 
 | Field                | Value                                                                                                  |
 | -------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Document version** | 0.1                                                                                                    |
+| **Document version** | 0.2                                                                                                    |
 | **Last updated**     | 2026-03-19                                                                                             |
 | **Status**           | Draft — aligned with course final deliverable                                                          |
 | **Related docs**     | [project_proposal.md](./project_proposal.md) (business case, personas, stories, lifecycle, cost model) |
@@ -18,9 +18,10 @@
 Replay’s onboarding is bottlenecked by **manual extraction** of sales training signal from client PDFs (scripts, objections, rubrics, personas). This product is a **local web application** that:
 
 1. Ingests one or more **PDFs** per client onboarding.
-2. Runs a **four-step AI pipeline** (denoise → understand → plan → generate) using **Anthropic Claude**.
-3. Produces a **structured, Replay-oriented JSON config** describing a ordered **learning flow** of training activities.
-4. Requires **human-in-the-loop (HITL)** review and approval before export.
+2. Builds a **canonical document** from the PDF **text layer** plus a **vision LLM pass** over **page images** so diagrams, slides, and image-embedded copy are not lost.
+3. Runs a **four-step AI pipeline** (denoise → understand → plan → generate) using **Anthropic Claude** on that merged source.
+4. Produces a **structured, Replay-oriented JSON config** describing a ordered **learning flow** of training activities.
+5. Requires **human-in-the-loop (HITL)** review and approval before export.
 
 **MVP posture:** Standalone tool running on the founder’s machine; **JSON download** is the integration surface unless/until Replay exposes a formal import API.
 
@@ -28,7 +29,7 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 ## 2. Problem statement
 
-- **Today:** The founder spends ~~**5 hours** per client reading materials and structuring content before the technical “deep build” (~~20–30 min).
+- **Today:** The founder spends ~**5 hours** per client reading materials and structuring content before the technical “deep build” (~20–30 min).
 - **Impact:** High cost per onboarding, capped deal capacity, SMB segment economically marginal.
 - **Desired:** Cut **technical structuring time** to **< 30 seconds** of machine time and **minimal** founder review time, with **no reduction in quality** vs. manual extraction.
 
@@ -44,11 +45,13 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 | G1      | Reduce time spent structuring training from raw docs | Wall-clock from upload → draft config ready          | **< 30 s** (typical 25–30 page PDF, local network)             |
 | G2      | Keep founder as quality gate                         | % of exports that pass review without major rewrites | **≥ 90%** “draft usable” *(founder-judged; see §14)*           |
 | G3      | Make review efficient                                | Active HITL time to approve + export                 | **~30 s–2 min** *(aspirational; validate with user testing)*   |
-| G4      | Operate at predictable cost                          | API cost per onboarding                              | **~$1** per run at estimated token profile *(see proposal §5)* |
+| G4      | Operate at predictable cost                          | API cost per onboarding                              | **Budget TBD** — multimodal (vision) per page increases cost vs. text-only; document estimates after model + page policy locked *(see proposal §5 baseline + PRD §14 Q7)* |
 | G5      | Recover from failure                                 | Jobs survive restart; failed step identifiable       | 100% of jobs have **auditable state** and **actionable error** |
 
 
 **Non-goals for metric purposes:** This PRD does *not* require proving full **250 deals/year** capacity in the course scope — that remains a **business projection** tied to org process, not only this tool.
+
+**Note on G1:** A full **per-page vision** pass can push end-to-end time above **30 s** for long PDFs. Treat **30 s** as a target for the **core four-step pipeline** once canonical text exists, or revisit after implementing **selective vision** (FR-02e).
 
 ---
 
@@ -58,7 +61,7 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 | ID  | Out of scope                                                       | Rationale                                                                                   |
 | --- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | NG1 | Automatic deployment into Replay production without human approval | HITL is a core safety and quality requirement                                               |
-| NG2 | OCR / vision over scanned PDFs                                     | MVP assumes **text-extractable** PDFs; image-only docs are **unsupported** with clear error |
+| NG2 | Standalone OCR library stack as the **primary** extraction path (e.g. Tesseract-only pipeline) | **Rejected for MVP** — past attempts were brittle; **vision-capable LLM** is the primary way to read diagram/slide pages |
 | NG3 | Multi-tenant SaaS, auth, cloud hosting                             | MVP is **single-user local**; reduces security and ops surface                              |
 | NG4 | Real-time collaborative editing                                    | Single reviewer workflow                                                                    |
 | NG5 | Guaranteed legal/compliance sign-off for all verticals             | Tool assists extraction; **founder** remains responsible for client-facing content          |
@@ -94,7 +97,7 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 ### 6.2 Failure path — Bad PDF
 
-1. Upload corrupt or image-only PDF → job enters `**error`** with message naming the failure (**extraction** vs **API** vs **step**).
+1. Upload corrupt PDF or total extraction failure (text + vision) → job enters **`error`** with message naming the failure (**extraction** vs **API** vs **step**).
 2. Founder replaces file or retries failed step when supported.
 
 ### 6.3 Recovery path — Restart
@@ -108,12 +111,16 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 ### 7.1 Ingestion & jobs
 
 
-| ID    | Requirement                                                                                                           | Priority |
-| ----- | --------------------------------------------------------------------------------------------------------------------- | -------- |
-| FR-01 | Accept **multi-file upload** (PDF) per job; reject unsupported types with clear error                                 | P0       |
-| FR-02 | Extract **plain text** from PDFs locally (text layer); surface **character count** / warnings when extraction is thin | P0       |
-| FR-03 | Create a **parse job** with unique `jobId`, timestamps, and **status** per lifecycle (proposal §8)                    | P0       |
-| FR-04 | Run pipeline **asynchronously**; API returns `jobId` immediately                                                      | P0       |
+| ID     | Requirement                                                                                                                                                                                                                                                                                                                                 | Priority |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| FR-01  | Accept **multi-file upload** (PDF) per job; reject unsupported types with clear error                                                                                                                                                                                                                                                       | P0       |
+| FR-02  | Extract **plain text** from each PDF’s **text layer** locally (e.g. `pdf-parse`); when possible, record **per-page** or per-document character counts to drive logging and optional **selective vision**                                                                                                                                      | P0       |
+| FR-02b | **Rasterize** PDF pages to images (e.g. **pdfjs-dist** or Poppler `pdftoppm`); respect **max dimension / DPI** and **page caps** suitable for the chosen vision API                                                                                                                                                                         | P0       |
+| FR-02c | For each page sent to vision, call a **vision-capable LLM** (same stack as the rest of the product: **Anthropic Claude with image input**) to: transcribe **visible text**, summarize **diagrams / flowcharts** (nodes, arrows, labels), and return **structured plain text** suitable for merging into the pipeline                         | P0       |
+| FR-02d | **Merge** text-layer and vision outputs into one **canonical plain-text representation** per document with **provenance** (e.g. `text_layer`, `vision:page=12`) so downstream steps and HITL can see what came from where; **prefer text layer** for verbatim copy when both exist; **append** vision for diagram-only or supplemental content | P0       |
+| FR-02e | **Optional optimization (P1):** run vision only on pages below a **text-density threshold** to reduce cost; MVP may process **all pages** first, then add selectivity once baseline quality is proven                                                                                                                                          | P1       |
+| FR-03  | Create a **parse job** with unique `jobId`, timestamps, and **status** per lifecycle (proposal §8)                                                                                                                                                                                                                                          | P0       |
+| FR-04  | Run pipeline **asynchronously**; API returns `jobId` immediately                                                                                                                                                                                                                                                                            | P0       |
 
 
 ### 7.2 AI pipeline
@@ -125,7 +132,7 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 | FR-11 | **Step 2 — Understand:** Emit a **tagged section map** (e.g. `script`, `objection-list`, `value-prop`, `persona`, `tactical-advice`, `process-steps`, `industry-context`, `video-reference`) with **source document/section** attribution where possible | P0       |
 | FR-12 | **Step 3 — Plan:** Produce an **ordered activity plan** from allowed types: `Lesson`, `Memorization`, `RolePlay`, `RapidFire`, `Mirroring` — with **documented sequencing rules** (foundational → scripts → practice → drills → full roleplay)           | P0       |
 | FR-13 | **Step 4 — Generate:** For each planned activity, output a **typed config object** matching the activity schema (see §10)                                                                                                                                | P0       |
-| FR-14 | Attach `**metadata.confidence`** (0–1) at job/config level reflecting **source completeness** (heuristic + model judgment, documented in implementation)                                                                                                 | P1       |
+| FR-14 | Attach `metadata.confidence` (0–1) at job/config level reflecting **source completeness** (heuristic + model judgment, documented in implementation)                                                                                                      | P1       |
 | FR-15 | Support **per-activity regeneration** (re-run Step 4 for one activity) without full pipeline re-run                                                                                                                                                      | P1       |
 
 
@@ -162,7 +169,8 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 | ID     | Category            | Requirement                                                                                             |
 | ------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| NFR-01 | **Privacy**         | MVP runs **locally**; only **PDF text** and prompts sent to **Anthropic** per founder acceptance        |
+| NFR-01 | **Privacy**         | MVP runs **locally**; **PDF text**, **page images** (or downscaled renders), and prompts are sent to **Anthropic** per founder acceptance |
+| NFR-08 | **Multimodal**      | Vision calls use a **documented** model ID, image size limits, and retry policy; failures on a subset of pages MUST NOT silently drop pages — surface partial success + which pages failed |
 | NFR-02 | **Reliability**     | Persist jobs to **SQLite** (or equivalent); survive normal app restarts                                 |
 | NFR-03 | **Observability**   | Each job records **current step**, **percent/progress**, **last error**                                 |
 | NFR-04 | **Resilience**      | Claude calls: **retry with backoff** (e.g. 3×) on timeout/rate limit                                    |
@@ -177,7 +185,8 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 - **Client:** Next.js (App Router) + React + Tailwind — **local** `npm run dev` or local production build.
 - **Server:** Next.js **API routes** for parse/jobs/patch.
-- **Pipeline:** Node async worker pattern (in-process or queue) calling **Claude** per step.
+- **Ingestion:** Text extraction locally + **page rasterization** → **Claude vision** → merged canonical text.
+- **Pipeline:** Node async worker pattern (in-process or queue) calling **Claude** per step (text + prior multimodal merge).
 - **Storage:** **SQLite** for job records and draft configs.
 - **External:** **Anthropic API** (model version **pinned** in config — open question §14).
 
@@ -238,7 +247,7 @@ Implementations MUST validate `config` against the activity type.
 
 | Story ID | Maps to                     |
 | -------- | --------------------------- |
-| US-01    | FR-01–04                    |
+| US-01    | FR-01–04, FR-02b–02d        |
 | US-02    | FR-04, FR-32, NFR-03        |
 | US-03    | FR-20–22                    |
 | US-04    | FR-22, FR-33                |
@@ -259,7 +268,7 @@ Implementations MUST validate `config` against the activity type.
 | Phase                    | Scope                                                                           | Exit criteria                                                      |
 | ------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **P0 — PRD + alignment** | Stakeholder sign-off on schema, import path, MVP scope                          | This doc + resolved §14 blockers                                   |
-| **P1 — MVP build**       | FR P0 items, SQLite, export                                                     | One real client PDF runs end-to-end; founder can edit + export     |
+| **P1 — MVP build**       | FR P0 items (including **multimodal ingestion**), SQLite, export                 | Fixture PDF with **diagram/image-heavy** pages runs end-to-end; founder can edit + export     |
 | **P2 — Polish**          | P1 FRs, progress UI, regeneration, confidence flags                             | Demo script repeatable in < 5 min                                  |
 | **P3 — Optional**        | RAG from **Replay-owned** template library; industry tags; strict provenance UI | Sparse-doc scenario tested; zero unlabeled template text in export |
 
@@ -272,7 +281,9 @@ Implementations MUST validate `config` against the activity type.
 | Risk                                  | Impact                    | Mitigation                                                                     |
 | ------------------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
 | LLM invents scripts/objections        | Wrong client training     | Mandatory HITL; source attribution fields; regenerate per activity             |
-| PDF extraction garbage in/garbage out | Bad drafts                | Pre-flight extraction stats; **error** on empty text; warn on low text density |
+| PDF extraction garbage in/garbage out | Bad drafts                | **Text + vision merge**; pre-flight stats; **error** only if combined canonical doc is unusable; warn on low text *before* vision |
+| Vision misreads diagram or hallucinates labels | Wrong training content | HITL; provenance tags; prompt asks for “visible text only” + explicit uncertainty; optional re-run vision for a page |
+| Vision cost / latency                 | Slower or expensive runs  | P1 selective pages; page caps; document pricing in README; async job UX |
 | Schema drift vs real Replay import    | Export unusable           | **§14** — lock target schema with founder; version field                       |
 | Token limits on huge uploads          | Timeouts / partial output | Chunk per document; Step 4 **per activity** calls; cap pages with user warning |
 | Founder acceptance of “90% draft”     | Disputed success metric   | Define rubric in §14 with 1–2 **golden** PDFs + expected counts                |
@@ -291,6 +302,7 @@ Implementations MUST validate `config` against the activity type.
 | Q4  | **Golden test docs** (1–2 PDFs) + expected outputs for “90% draft” evaluation?                   | Founder provides PDF + **checklist** (e.g. objection count, script variants)                                |
 | Q5  | Is **Mirroring** in scope for MVP if no video references in PDFs?                                | **Skip** unless `video-reference` sections exist                                                            |
 | Q6  | **RAG / template library** in course timeline?                                                   | **P3 optional** — not blocking PRD approval                                                                 |
+| Q7  | **Vision policy:** all pages vs. low-text pages only? Max resolution? Hard page cap per job?      | **Default to all pages** for MVP simplicity; add selective pass + caps when cost/latency measured on real fixtures |
 
 
 ---
@@ -301,6 +313,7 @@ Implementations MUST validate `config` against the activity type.
 | Version | Date       | Notes                                                     |
 | ------- | ---------- | --------------------------------------------------------- |
 | 0.1     | 2026-03-19 | Initial PRD from proposal + pipeline/schema consolidation |
+| 0.2     | 2026-03-19 | MVP includes **LLM vision/OCR** for diagrams and image-embedded text; removed library-only OCR as primary path |
 
 
 ---
