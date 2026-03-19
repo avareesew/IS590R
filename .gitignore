@@ -1,0 +1,18 @@
+# --- Client training materials (never commit) ---
+# Everything under fixtures/training-docs/ is ignored except this folder's README.
+fixtures/training-docs/**
+!fixtures/training-docs/README.md
+
+# --- Local secrets (when you add the app) ---
+.env
+.env.local
+.env.*.local
+
+# --- Common tooling noise ---
+.DS_Store
+
+# --- Node / Next.js (if/when added) ---
+node_modules/
+.next/
+out/
+dist/
