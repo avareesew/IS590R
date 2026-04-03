@@ -5,25 +5,26 @@
 
 ## What it is
 
-A **local web app** for **Replay** that turns client **training PDFs** into a **structured JSON learning plan** (lessons, memorization, role-plays, rapid-fire objections, etc.). Ingestion merges **PDF text** with a **Claude vision** pass over **page images** (diagrams, slides, image-embedded copy). **Anthropic Claude** then runs the main pipeline; the **founder reviews and approves** everything before export.
+A **hosted web app** (Vercel) for **Replay** that replaces two manual steps — a first client interview and hours of PDF review — with a **client-facing intake link + AI pipeline**. The founder creates a new client, copies a link, and sends it. The client fills out a 30-second brief (what they want to train on) and uploads their own PDFs. The pipeline runs automatically; the founder reviews and approves a structured JSON learning plan (lessons, memorization, role-plays, rapid-fire objections, etc.) and exports. Ingestion merges **PDF text** with a **Claude vision** pass over **page images** (diagrams, slides, image-embedded copy). **Anthropic Claude** runs the pipeline guided by the training brief.
 
 ---
 
 ## Problem
 
-Onboarding is **founder-limited**: ~**5 hours** per client to read PDFs and extract scripts, objections, and rubrics before the real “build.” That caps capacity and makes low-ACV deals expensive to serve.
+Onboarding is **founder-limited**: a first interview to learn what the client wants to train on, then ~**5 hours** per client to read PDFs and extract scripts, objections, and rubrics before the real “build.” That caps capacity and makes low-ACV deals expensive to serve.
 
 ---
 
 ## Solution (in one flow)
 
-| Step | What happens |
-| --- | --- |
-| **Upload** | 1+ PDFs → async **job** |
-| **Ingest** | Text layer + **vision per page** (or selective) → **merged canonical doc** |
-| **Pipeline** | **Denoise** → **tag sections** → **plan activities** → **generate configs** |
-| **Review** | Founder edits, flags, or regenerates single activities |
-| **Export** | **Approved JSON** downloaded for import into Replay *(exact import path TBD with stakeholder)* |
+| Step | Who | What happens |
+| --- | --- | --- |
+| **Link** | Founder | Creates new client in dashboard → copies unique intake link → sends to client |
+| **Intake** | Client | Opens link → selects training topics → adds doc notes → drags and drops PDFs → submits |
+| **Ingest** | System | PDFs pulled from Vercel Blob; text layer + **vision per page** → **merged canonical doc** |
+| **Pipeline** | System | **Denoise** → **tag sections** → **plan activities** → **generate configs** (training brief guides Steps 2 & 3) |
+| **Review** | Founder | Edits, flags, or regenerates single activities |
+| **Export** | Founder | **Approved JSON** downloaded for import into Replay *(exact import path TBD with stakeholder)* |
 
 ---
 
@@ -48,13 +49,13 @@ Onboarding is **founder-limited**: ~**5 hours** per client to read PDFs and extr
 
 ## Stack (MVP)
 
-**Next.js** · **React** · **Tailwind** · **SQLite** · **pdf text extract** · **page rasterization** · **Anthropic API (text + vision)**
+**Next.js** · **React** · **Tailwind** · **Vercel** · **Vercel Blob** · **Postgres (Neon)** · **pdf text extract** · **page rasterization** · **Anthropic API (text + vision)**
 
 ---
 
 ## Out of scope (MVP)
 
-Library-only OCR as the **primary** path (vision LLM is MVP) · multi-tenant cloud · auto-deploy without approval · optional later: **RAG** from Replay-owned generic playbooks for **sparse** client docs (labeled provenance).
+Library-only OCR as the **primary** path (vision LLM is MVP) · multi-tenant auth · auto-deploy without approval · optional later: **RAG** from Replay-owned generic playbooks for **sparse** client docs (labeled provenance).
 
 ---
 

@@ -5,8 +5,8 @@
 
 | Field                | Value                                                                                                  |
 | -------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Document version** | 0.2                                                                                                    |
-| **Last updated**     | 2026-03-19                                                                                             |
+| **Document version** | 0.4                                                                                                    |
+| **Last updated**     | 2026-04-02                                                                                             |
 | **Status**           | Draft — aligned with course final deliverable                                                          |
 | **Related docs**     | [project_proposal.md](./project_proposal.md) (business case, personas, stories, lifecycle, cost model) |
 
@@ -15,23 +15,24 @@
 
 ## 1. Executive summary
 
-Replay’s onboarding is bottlenecked by **manual extraction** of sales training signal from client PDFs (scripts, objections, rubrics, personas). This product is a **local web application** that:
+Replay’s onboarding is bottlenecked by **two manual steps**: (1) a first conversation with the client to learn what they want to train on, and (2) hours of manual extraction of sales training signal from client PDFs. This product is a **hosted web application** (deployed on Vercel) that eliminates both:
 
-1. Ingests one or more **PDFs** per client onboarding.
-2. Builds a **canonical document** from the PDF **text layer** plus a **vision LLM pass** over **page images** so diagrams, slides, and image-embedded copy are not lost.
-3. Runs a **four-step AI pipeline** (denoise → understand → plan → generate) using **Anthropic Claude** on that merged source.
-4. Produces a **structured, Replay-oriented JSON config** describing a ordered **learning flow** of training activities.
-5. Requires **human-in-the-loop (HITL)** review and approval before export.
+1. Founder creates a new client in the app → receives a **unique intake link** to send to the client.
+2. Client opens the link, fills out a **training brief** (topics they want to train on, documentation notes), and **drags and drops their training PDFs** directly — no back-and-forth with the founder.
+3. Builds a **canonical document** from the PDF **text layer** plus a **vision LLM pass** over **page images** so diagrams, slides, and image-embedded copy are not lost.
+4. Runs a **four-step AI pipeline** (denoise → understand → plan → generate) using **Anthropic Claude** on the merged source, **guided by the training brief**.
+5. Produces a **structured, Replay-oriented JSON config** describing an ordered **learning flow** of training activities.
+6. Requires **human-in-the-loop (HITL)** review and approval by the founder before export.
 
-**MVP posture:** Standalone tool running on the founder’s machine; **JSON download** is the integration surface unless/until Replay exposes a formal import API.
+**MVP posture:** Deployed on **Vercel** (hosted, single-founder access to dashboard); PDFs stored in **Vercel Blob**; jobs persisted in **hosted Postgres** (e.g. Neon free tier). **JSON download** is the integration surface unless/until Replay exposes a formal import API.
 
 ---
 
 ## 2. Problem statement
 
-- **Today:** The founder spends ~**5 hours** per client reading materials and structuring content before the technical “deep build” (~20–30 min).
+- **Today:** The founder has a **first conversation** with each client to learn what they want to train on (topics, focus areas), then spends ~**5 hours** reading materials and structuring content before the technical “deep build” (~20–30 min).
 - **Impact:** High cost per onboarding, capped deal capacity, SMB segment economically marginal.
-- **Desired:** Cut **technical structuring time** to **< 30 seconds** of machine time and **minimal** founder review time, with **no reduction in quality** vs. manual extraction.
+- **Desired:** Replace the first conversation with a **client-facing intake link** the founder sends; client fills the brief and uploads their own PDFs; cut **technical structuring time** to **< 30 seconds** of machine time; keep founder review time minimal — with **no reduction in quality** vs. manual extraction.
 
 *(Quantified business case: see proposal §1, §4, Appendix A.)*
 
@@ -42,7 +43,7 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 | Goal ID | Goal                                                 | Metric                                               | Target                                                         |
 | ------- | ---------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
-| G1      | Reduce time spent structuring training from raw docs | Wall-clock from upload → draft config ready          | **< 30 s** (typical 25–30 page PDF, local network)             |
+| G1      | Reduce time spent structuring training from raw docs | Wall-clock from client submission → draft config ready | **< 30 s** pipeline time (typical 25–30 page PDF); excludes vision ingestion if selective mode not yet active |
 | G2      | Keep founder as quality gate                         | % of exports that pass review without major rewrites | **≥ 90%** “draft usable” *(founder-judged; see §14)*           |
 | G3      | Make review efficient                                | Active HITL time to approve + export                 | **~30 s–2 min** *(aspirational; validate with user testing)*   |
 | G4      | Operate at predictable cost                          | API cost per onboarding                              | **Budget TBD** — multimodal (vision) per page increases cost vs. text-only; document estimates after model + page policy locked *(see proposal §5 baseline + PRD §14 Q7)* |
@@ -62,7 +63,7 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 | --- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | NG1 | Automatic deployment into Replay production without human approval | HITL is a core safety and quality requirement                                               |
 | NG2 | Standalone OCR library stack as the **primary** extraction path (e.g. Tesseract-only pipeline) | **Rejected for MVP** — past attempts were brittle; **vision-capable LLM** is the primary way to read diagram/slide pages |
-| NG3 | Multi-tenant SaaS, auth, cloud hosting                             | MVP is **single-user local**; reduces security and ops surface                              |
+| NG3 | Multi-tenant SaaS, user auth, role management                      | MVP is **single-founder dashboard** deployed on Vercel; client intake link is public but scoped to a unique token per client; no login system |
 | NG4 | Real-time collaborative editing                                    | Single reviewer workflow                                                                    |
 | NG5 | Guaranteed legal/compliance sign-off for all verticals             | Tool assists extraction; **founder** remains responsible for client-facing content          |
 
@@ -76,8 +77,9 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 | Persona                    | Role                  | Relationship to product                                                                                                                   |
 | -------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **P1 — Founder**           | CEO; primary user     | Uploads PDFs, reviews/edits all activities, approves, exports JSON                                                                        |
-| **P2 — Ops hire (future)** | Onboarding specialist | May run uploads and **flag** items for founder; **does not** replace final approval in v1 unless explicitly decided *(open question §14)* |
+| **P1 — Founder**           | CEO; primary user     | Creates new clients, generates intake links, reviews/edits all activities, approves, exports JSON                                         |
+| **P2 — Client**            | Company being onboarded | Receives intake link, fills training brief, uploads their training PDFs — no other access to the app |
+| **P3 — Ops hire (future)** | Onboarding specialist | May manage intake links and **flag** items for founder; **does not** replace final approval in v1 unless explicitly decided *(open question §14)* |
 
 
 *Full persona tables: [project_proposal.md §6](./project_proposal.md)*
@@ -88,25 +90,44 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 ### 6.1 Happy path — Founder
 
-1. Open local app → **Upload** 1–3 PDFs for a client (optional client name).
-2. System creates a **job**, shows **pipeline progress** (denoising → understanding → planning → generating).
-3. On completion, open **job detail** → review **ordered learning flow** (cards/list).
-4. Open each activity → **edit** fields inline; **regenerate** single activity if needed.
-5. **Approve** activities (or approve all) → **Export JSON** → file saved locally.
-6. Founder imports or pastes config into Replay’s builder **per current Replay workflow** *(mechanism TBD §14)*.
+1. Open dashboard → click **"New Client"** → enter client name → app generates a unique **intake link**.
+2. Copy link → send to client (email, Slack, however).
+3. When client submits → job appears in dashboard with status `submitted`; pipeline runs automatically.
+4. Open **job detail** → review **ordered learning flow** (cards/list).
+5. Open each activity → **edit** fields inline; **regenerate** single activity if needed.
+6. **Approve** activities (or approve all) → **Export JSON** → file saved locally.
+7. Founder imports or pastes config into Replay’s builder **per current Replay workflow** *(mechanism TBD §14)*.
 
-### 6.2 Failure path — Bad PDF
+### 6.2 Happy path — Client
+
+1. Receive intake link from founder → open in browser.
+2. Fill out **training brief**: confirm company name, select training topics (e.g. "Objection Handling", "Intro Scripts"), add documentation notes.
+3. **Drag and drop** training PDFs (1–3 files).
+4. Submit → confirmation screen ("Your materials have been received").
+
+### 6.3 Failure path — Bad PDF
 
 1. Upload corrupt PDF or total extraction failure (text + vision) → job enters **`error`** with message naming the failure (**extraction** vs **API** vs **step**).
 2. Founder replaces file or retries failed step when supported.
 
-### 6.3 Recovery path — Restart
+### 6.4 Recovery path — Restart
 
 1. App or machine restarts mid-job → job resumes from **last completed step** (or shows **retry** for failed step); **no silent data loss** of prior draft.
 
 ---
 
 ## 7. Functional requirements
+
+### 7.0 Client intake link & training brief
+
+| ID     | Requirement                                                                                                                                                                                                                                  | Priority |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| FR-00  | Founder can create a **new client** from the dashboard; app generates a **unique intake link** (token-scoped URL, e.g. `/intake/[token]`) that can be sent directly to the client                                                            | P0       |
+| FR-00b | Client opens the intake link and fills out a **training brief form**: company name (pre-filled), training topics (multi-select tags + freeform: "Objection Handling", "Intro Scripts", "Product Knowledge", "Process Steps", "Closing"), and a free-text documentation note | P0       |
+| FR-00c | Client **drags and drops** their training PDFs (1–3 files, `.pdf` only) on the intake page and submits; PDFs are uploaded to **Vercel Blob**; a parse job is created automatically; client sees a confirmation screen | P0       |
+| FR-00d | Store the training brief as part of the **job record** in Postgres; include it in the exported `ParsedTrainingConfig` under `metadata.trainingBrief`                                                                                        | P0       |
+| FR-00e | Pass the training brief as a **directive** into Steps 2 (Understand) and 3 (Plan) so the pipeline prioritizes sections and activity types that match the stated topics; brief is shown to the founder in the HITL dashboard for reference    | P0       |
+| FR-00f | Intake link is **single-use** (or time-limited — open question §14 Q8); once submitted, the link shows "already submitted" rather than allowing re-submission                                                                               | P1       |
 
 ### 7.1 Ingestion & jobs
 
@@ -169,9 +190,9 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 | ID     | Category            | Requirement                                                                                             |
 | ------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| NFR-01 | **Privacy**         | MVP runs **locally**; **PDF text**, **page images** (or downscaled renders), and prompts are sent to **Anthropic** per founder acceptance |
+| NFR-01 | **Privacy**         | App is deployed on **Vercel**; client PDFs are stored in **Vercel Blob** and sent to **Anthropic** for processing; founder accepts this on behalf of the client — document in intake page footer and README |
 | NFR-08 | **Multimodal**      | Vision calls use a **documented** model ID, image size limits, and retry policy; failures on a subset of pages MUST NOT silently drop pages — surface partial success + which pages failed |
-| NFR-02 | **Reliability**     | Persist jobs to **SQLite** (or equivalent); survive normal app restarts                                 |
+| NFR-02 | **Reliability**     | Persist jobs to **hosted Postgres** (e.g. Neon); survive Vercel cold starts and redeployments           |
 | NFR-03 | **Observability**   | Each job records **current step**, **percent/progress**, **last error**                                 |
 | NFR-04 | **Resilience**      | Claude calls: **retry with backoff** (e.g. 3×) on timeout/rate limit                                    |
 | NFR-05 | **Maintainability** | TypeScript types for **job**, **config**, and **per-activity** payloads; version field on exported JSON |
@@ -183,12 +204,14 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
 
 ## 9. System architecture (summary)
 
-- **Client:** Next.js (App Router) + React + Tailwind — **local** `npm run dev` or local production build.
-- **Server:** Next.js **API routes** for parse/jobs/patch.
-- **Ingestion:** Text extraction locally + **page rasterization** → **Claude vision** → merged canonical text.
-- **Pipeline:** Node async worker pattern (in-process or queue) calling **Claude** per step (text + prior multimodal merge).
-- **Storage:** **SQLite** for job records and draft configs.
-- **External:** **Anthropic API** (model version **pinned** in config — open question §14).
+- **Client:** Next.js (App Router) + React + Tailwind — deployed on **Vercel**.
+- **Server:** Next.js **API routes** for intake/parse/jobs/patch; pipeline runs as Vercel serverless functions *(see §14 Q8 re: timeout limits)*.
+- **Intake:** Token-scoped public page (`/intake/[token]`) — client fills brief and uploads PDFs directly; no auth required for this route.
+- **File storage:** **Vercel Blob** — PDFs uploaded by client, referenced by job record.
+- **Ingestion:** PDF text extraction + **page rasterization** → **Claude vision** → merged canonical text; inputs sourced from Vercel Blob.
+- **Pipeline:** Claude called per step (denoise → understand → plan → generate); training brief passed as directive into Steps 2 & 3.
+- **Database:** **Hosted Postgres** (e.g. Neon free tier) for job records, training briefs, draft configs, intake tokens.
+- **External:** **Anthropic API** (model version **pinned** in env config — open question §14 Q3).
 
 *Mermaid architecture diagram: [project_proposal.md §2, Figure 1](./project_proposal.md)*
 
@@ -205,7 +228,11 @@ Replay’s onboarding is bottlenecked by **manual extraction** of sales training
     "generatedAt": "ISO-8601",
     "documentCount": 0,
     "schemaVersion": "string",
-    "confidence": 0.0
+    "confidence": 0.0,
+    "trainingBrief": {
+      "topics": ["string"],
+      "documentationNotes": "string"
+    }
   },
   "persona": {
     "name": "string",
@@ -247,6 +274,7 @@ Implementations MUST validate `config` against the activity type.
 
 | Story ID | Maps to                     |
 | -------- | --------------------------- |
+| US-00    | FR-00–00f                   |
 | US-01    | FR-01–04, FR-02b–02d        |
 | US-02    | FR-04, FR-32, NFR-03        |
 | US-03    | FR-20–22                    |
@@ -268,7 +296,7 @@ Implementations MUST validate `config` against the activity type.
 | Phase                    | Scope                                                                           | Exit criteria                                                      |
 | ------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **P0 — PRD + alignment** | Stakeholder sign-off on schema, import path, MVP scope                          | This doc + resolved §14 blockers                                   |
-| **P1 — MVP build**       | FR P0 items (including **multimodal ingestion**), SQLite, export                 | Fixture PDF with **diagram/image-heavy** pages runs end-to-end; founder can edit + export     |
+| **P1 — MVP build**       | FR P0 items (including **client intake link**, **training brief**, **multimodal ingestion**), Postgres, Vercel Blob, export | Client submits via intake link; pipeline runs end-to-end; founder can edit + export |
 | **P2 — Polish**          | P1 FRs, progress UI, regeneration, confidence flags                             | Demo script repeatable in < 5 min                                  |
 | **P3 — Optional**        | RAG from **Replay-owned** template library; industry tags; strict provenance UI | Sparse-doc scenario tested; zero unlabeled template text in export |
 
@@ -286,6 +314,8 @@ Implementations MUST validate `config` against the activity type.
 | Vision cost / latency                 | Slower or expensive runs  | P1 selective pages; page caps; document pricing in README; async job UX |
 | Schema drift vs real Replay import    | Export unusable           | **§14** — lock target schema with founder; version field                       |
 | Token limits on huge uploads          | Timeouts / partial output | Chunk per document; Step 4 **per activity** calls; cap pages with user warning |
+| Vercel serverless function timeout    | Pipeline cut off mid-run on long PDFs | Hobby plan: 60s max; Pro plan: 5 min; evaluate after vision benchmark — may need to upgrade or offload pipeline to a background worker (e.g. Vercel Cron + queue) |
+| Client uploads wrong or corrupt file  | Bad pipeline input from uncontrolled source | Validate file type and minimum extractable text on upload; surface clear error on intake confirmation page |
 | Founder acceptance of “90% draft”     | Disputed success metric   | Define rubric in §14 with 1–2 **golden** PDFs + expected counts                |
 
 
@@ -303,6 +333,8 @@ Implementations MUST validate `config` against the activity type.
 | Q5  | Is **Mirroring** in scope for MVP if no video references in PDFs?                                | **Skip** unless `video-reference` sections exist                                                            |
 | Q6  | **RAG / template library** in course timeline?                                                   | **P3 optional** — not blocking PRD approval                                                                 |
 | Q7  | **Vision policy:** all pages vs. low-text pages only? Max resolution? Hard page cap per job?      | **Default to all pages** for MVP simplicity; add selective pass + caps when cost/latency measured on real fixtures |
+| Q8  | **Vercel plan:** Hobby (60s function timeout) or Pro (5 min)? Or offload pipeline to background worker? | Benchmark pipeline on a real fixture PDF; upgrade to Pro if needed before demo |
+| Q9  | **Intake link policy:** single-use, time-limited (e.g. 7 days), or open until manually closed?   | Default to single-use for MVP; revisit if clients need to resubmit |
 
 
 ---
@@ -314,6 +346,8 @@ Implementations MUST validate `config` against the activity type.
 | ------- | ---------- | --------------------------------------------------------- |
 | 0.1     | 2026-03-19 | Initial PRD from proposal + pipeline/schema consolidation |
 | 0.2     | 2026-03-19 | MVP includes **LLM vision/OCR** for diagrams and image-embedded text; removed library-only OCR as primary path |
+| 0.3     | 2026-04-02 | Added **training brief intake** (FR-00–00c) to replace first client interview; updated exec summary, problem statement, happy-path journey, architecture, schema, traceability, and phased delivery |
+| 0.4     | 2026-04-02 | Intake is now a **client-facing link** (not founder-filled); app deployed on **Vercel**; storage migrated to **Vercel Blob** (PDFs) + **hosted Postgres** (jobs); client persona added; Vercel timeout + intake link policy added as risks and open questions |
 
 
 ---

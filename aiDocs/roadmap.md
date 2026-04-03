@@ -1,8 +1,6 @@
 # Replay AI Parser Agent — Project Roadmap
 
-> **Core goal:** Reduce onboarding cycle from 5 hours → ~1.5 hours, and technical build time from 30 min → 30 seconds.
-
-**Phases, not sprints:** Work is grouped into **Phase 0 → 1 → 2** with exit criteria. Subheadings like “Days 3–4” are **suggested batching order**, not fixed calendar — adjust to your bandwidth.
+> **Core goal:** Reduce onboarding cycle from 5 hours → ~1.5 hours, and technical build time from 30 min → 30 seconds. Client fills out their own intake form and uploads their own PDFs via a link — no first interview needed.
 
 **Test PDFs:** Drop real training documents under `fixtures/training-docs/<company-slug>/` (see [fixtures/training-docs/README.md](../fixtures/training-docs/README.md)).
 
@@ -13,15 +11,22 @@
 The parser is a **4-step unified pipeline** that both plans the training activity sequence AND generates the content configs in one automated pass. This replaces a two-step manual workflow (human reads docs → human decides what to build → human builds it).
 
 ```
-Client PDFs → [1] Signal Denoising → [2] Document Understanding
-           → [3] Activity Planning → [4] Content Generation → learningFlow[]
-                                                                     ↓
-                                                           HITL Review Dashboard
-                                                                     ↓
-                                                           Approved Export (JSON)
+Founder creates client → unique intake link → sent to client
+                                                    ↓
+                              Client fills brief (topics, doc notes)
+                              + uploads PDFs → Vercel Blob
+                                                    ↓
+Training Brief + PDFs → [1] Signal Denoising → [2] Document Understanding
+                      → [3] Activity Planning → [4] Content Generation → learningFlow[]
+                               ↑ brief used as directive in Steps 2 & 3 ↑
+                                                                              ↓
+                                                                    HITL Review Dashboard (founder)
+                                                                              ↓
+                                                                    Approved Export (JSON)
 ```
 
 **Output schema:** `ParsedTrainingConfig`
+
 ```json
 {
   "metadata": { "clientName", "generatedAt", "documentCount", "confidence" },
@@ -43,48 +48,68 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 
 ## Phase 0 — Setup & scaffold
 
-**Prerequisites:** None.  
-**Goal:** Working local dev environment with verified PDF parsing.
+**Prerequisites:** None.
+**Goal:** Working Vercel-deployed app with verified PDF parsing, Postgres, Blob storage, and client intake link.
 
 ### Milestones
 
-**Batch A — Project scaffold**
-- [ ] Initialize Next.js 14 app with App Router, TypeScript, Tailwind CSS
-- [ ] Install core dependencies: `pdf-parse`, `@anthropic-ai/sdk`
-- [ ] Create `.env.local` with `ANTHROPIC_API_KEY`
-- [ ] Establish file structure per `SPEC.md`:
+**Batch A — Project scaffold & infra**
+
+- Initialize Next.js 14 app with App Router, TypeScript, Tailwind CSS
+- Install core dependencies: `pdf-parse`, `@anthropic-ai/sdk`, `@vercel/blob`, Postgres client (e.g. `@neondatabase/serverless` or `postgres`)
+- Create `.env.local` with `ANTHROPIC_API_KEY`, `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`
+- Provision **Neon Postgres** (free tier) and **Vercel Blob** storage; confirm connections locally
+- Establish file structure:
   ```
   src/
-  ├── types/index.ts       ← define ParsedTrainingConfig, ParseJob, activity config types
+  ├── types/index.ts          ← ParsedTrainingConfig, ParseJob, TrainingBrief, IntakeToken, activity config types
   ├── lib/
-  │   ├── store.ts         ← in-memory job store (stub)
+  │   ├── db.ts               ← Postgres client + schema (jobs, intake_tokens, training_briefs)
+  │   ├── blob.ts             ← Vercel Blob upload/download helpers
   │   ├── parser/pipeline.ts  ← pipeline orchestrator (stub)
-  │   └── utils/pdf.ts     ← PDF extraction utility
+  │   └── utils/pdf.ts        ← PDF extraction utility
   └── app/
-      ├── upload/page.tsx
+      ├── intake/[token]/page.tsx  ← client-facing intake form (brief + PDF upload)
       ├── dashboard/
-      │   ├── page.tsx
-      │   └── [id]/page.tsx
+      │   ├── page.tsx             ← founder job list + "New Client" button
+      │   └── [id]/page.tsx        ← HITL review
       └── api/
-          ├── parse/route.ts
-          └── jobs/[id]/route.ts
+          ├── clients/route.ts     ← POST: create client + generate intake token
+          ├── intake/[token]/route.ts ← POST: submit brief + PDFs, create job
+          ├── parse/route.ts       ← internal: trigger pipeline for a job
+          └── jobs/[id]/route.ts   ← GET/PATCH: job status, edits, approval
   ```
 
+**Batch A2 — Client intake link & form**
+
+- `POST /api/clients` — founder creates a new client (name); server generates a unique token, stores `{ token, clientName, status: "pending", createdAt }` in Postgres; returns the intake URL (`/intake/[token]`)
+- Founder dashboard: "New Client" button → name input → copy intake link to clipboard
+- Build `src/app/intake/[token]/page.tsx` (public, no auth):
+  - Load client name from token; show "already submitted" if token is used
+  - Training topics: multi-select tag buttons ("Objection Handling", "Intro Scripts", "Closing Scripts", "Product Knowledge", "Process Steps", "Value Props") + freeform text
+  - Documentation notes: textarea
+  - PDF drag-and-drop (accept `.pdf`, 1–3 files, validate type on client)
+  - Submit → `POST /api/intake/[token]` → uploads PDFs to Vercel Blob, creates job in Postgres, marks token as used → confirmation screen
+- Define `TrainingBrief` in `src/types/index.ts`: `{ topics: string[], documentationNotes: string }`
+- Verify: client opens intake link, fills form, uploads a fixture PDF → job appears in founder dashboard with status `queued`
+
 **Batch B — PDF smoke test (text layer)**
-- [ ] Implement `src/lib/utils/pdf.ts`: accepts one or more PDF file buffers, returns raw extracted text per document
-- [ ] Test on a fixture under `fixtures/training-docs/`
-- [ ] Verify: raw text includes sales scripts and objection sections where a text layer exists
-- [ ] Verify: table of contents, commission tables, and image captions are present when embedded as text (to be filtered in Step 1)
-- [ ] Log character count and rough section detection
+
+- Implement `src/lib/utils/pdf.ts`: accepts one or more PDF file buffers, returns raw extracted text per document
+- Test on a fixture under `fixtures/training-docs/`
+- Verify: raw text includes sales scripts and objection sections where a text layer exists
+- Verify: table of contents, commission tables, and image captions are present when embedded as text (to be filtered in Step 1)
+- Log character count and rough section detection
 
 **Batch C — Multimodal capture (MVP, PRD FR-02b–02d)**
-- [ ] Rasterize each PDF page to an image (e.g. `pdfjs-dist` or Poppler); enforce max width/height for API limits
-- [ ] Call **Claude vision** per page (or implement **P1** selective pass: low text-density pages only — see PRD Q7)
-- [ ] Prompt: transcribe visible text + describe diagrams (flows, labels); output plain text blocks
-- [ ] Merge with text-layer output with **provenance** (`text_layer` vs `vision:page=N`); prefer text layer for duplicate copy
-- [ ] Fixture check: a PDF where **critical training content lives only in diagrams** still produces usable merged text for Step 1
 
-**Definition of Done:** `npm run dev` starts successfully; **merged** canonical text (text + vision) is produced without error on a multi-page, diagram-heavy document
+- Rasterize each PDF page to an image (e.g. `pdfjs-dist` or Poppler); enforce max width/height for API limits
+- Call **Claude vision** per page (or implement **P1** selective pass: low text-density pages only — see PRD Q7)
+- Prompt: transcribe visible text + describe diagrams (flows, labels); output plain text blocks
+- Merge with text-layer output with **provenance** (`text_layer` vs `vision:page=N`); prefer text layer for duplicate copy
+- Fixture check: a PDF where **critical training content lives only in diagrams** still produces usable merged text for Step 1
+
+**Definition of Done:** App deploys to Vercel; client opens intake link, uploads a fixture PDF, and the job appears in the founder dashboard; **merged** canonical text (text + vision) is produced without error on a multi-page, diagram-heavy document
 
 ---
 
@@ -103,6 +128,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 **What it does:** Strips non-conversational content so the AI only reasons over relevant training signal.
 
 **Remove:**
+
 - Welcome letters, table of contents, "In Closing" motivational wrap-ups
 - Daily/weekly schedules and time-blocked calendars
 - Commission and income tables
@@ -113,6 +139,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 - DRP financial mechanics (internal rep detail, not conversation content)
 
 **Keep:**
+
 - Sales scripts (intro variants, pitch questions, close lines)
 - Objection handling entries (trigger + response variants)
 - Value proposition explanations (PDR, deductible reduction, free rental)
@@ -131,9 +158,10 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 
 **File:** `src/lib/parser/steps/understand.ts`
 
-**What it does:** Categorizes filtered content into typed section tags so the Activity Planner knows what material is available.
+**What it does:** Categorizes filtered content into typed section tags so the Activity Planner knows what material is available. The **training brief** is passed as context so the model prioritizes tagging sections that match the stated topics (e.g. if brief says "Objection Handling", objection sections are tagged with higher fidelity).
 
 **Section tags:**
+
 - `script` — word-for-word talk tracks (intro scripts, close scripts)
 - `tactical-advice` — guidance on how to handle conversations, frameworks, techniques
 - `objection-list` — enumerated objections with response variants
@@ -153,19 +181,22 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 
 **File:** `src/lib/parser/steps/plan.ts`
 
-**What it does:** Decides which activity types to build and in what sequence, using the tagged section map as input. This step replaces the founder's manual Training Orchestration workflow.
+**What it does:** Decides which activity types to build and in what sequence, using the tagged section map as input. The **training brief** is passed as a directive — topics the CEO specified (e.g. "Objection Handling") are prioritized in the plan; activity types not relevant to the brief may be deprioritized or omitted. This step replaces the founder's manual Training Orchestration workflow.
 
 **Activity types and when to recommend them:**
 
-| Type | Trigger condition |
-|---|---|
-| `Lesson` | `industry-context`, `value-prop`, `process-steps`, or `persona` sections exist → foundational knowledge goes first |
-| `Memorization` | `script` sections exist → rep must internalize word-for-word talk tracks |
-| `RolePlay` | `tactical-advice` or `script` sections exist → free-form practice of a conversation phase |
-| `RapidFire` | `objection-list` exists → quick snap-back objections only (multi-step objections → RolePlay instead) |
-| `Mirroring` | `video-reference` exists → skip if absent, document why |
+
+| Type           | Trigger condition                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `Lesson`       | `industry-context`, `value-prop`, `process-steps`, or `persona` sections exist → foundational knowledge goes first |
+| `Memorization` | `script` sections exist → rep must internalize word-for-word talk tracks                                           |
+| `RolePlay`     | `tactical-advice` or `script` sections exist → free-form practice of a conversation phase                          |
+| `RapidFire`    | `objection-list` exists → quick snap-back objections only (multi-step objections → RolePlay instead)               |
+| `Mirroring`    | `video-reference` exists → skip if absent, document why                                                            |
+
 
 **Sequencing rules (enforced in output):**
+
 1. Lessons first — foundational knowledge
 2. Memorization scripts second — internalize the talk track
 3. Script-derived RolePlays third — same conversation, now with unscripted AI customer
@@ -173,6 +204,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 5. Situation and full-conversation RolePlays last
 
 **Important distinction (RapidFire vs. RolePlay for objections):**
+
 - One-sentence response → `RapidFire` (e.g., "I'm not interested" at the door)
 - Multi-step handling required → `RolePlay` (e.g., "It's already taken care of" — requires probing)
 
@@ -191,6 +223,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 **Per-type config schemas:**
 
 **Lesson config:**
+
 ```typescript
 {
   topics: string[]
@@ -200,6 +233,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 ```
 
 **Memorization config:**
+
 ```typescript
 {
   segments: {
@@ -212,6 +246,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 ```
 
 **RolePlay config:**
+
 ```typescript
 {
   persona: {
@@ -231,6 +266,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 ```
 
 **RapidFire config:**
+
 ```typescript
 {
   objections: {
@@ -247,6 +283,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 **Pipeline orchestrator:** `src/lib/parser/pipeline.ts` chains Steps 1–4, tracks progress per step, writes to the job store.
 
 **Validation checkpoint:** Generate full `learningFlow[]` from UHP PDF. Manually verify:
+
 - All 17 objections are in RapidFire or RolePlay (not lost)
 - At least 4 intro script lines appear in a Memorization segment
 - Scorecard sections reference the AGREE/RESPOND/REDIRECT framework
@@ -259,12 +296,13 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 **Files:** `src/lib/store.ts`, `src/app/api/parse/route.ts`, `src/app/api/jobs/route.ts`, `src/app/api/jobs/[id]/route.ts`, `src/app/upload/page.tsx`
 
 **Tasks:**
-- [ ] Implement in-memory job store: `{ id, status, createdAt, progress: { step, percent }, result? }`
-- [ ] `POST /api/parse` — accept multi-file upload, start async pipeline, return `jobId`
-- [ ] `GET /api/jobs` — list all jobs with status
-- [ ] `GET /api/jobs/[id]` — return job status + result when complete
-- [ ] `PATCH /api/jobs/[id]` — accept draft edits or approval status
-- [ ] Upload form: multi-file drag-and-drop (accept `.pdf`), shows job status after submission
+
+- Implement in-memory job store: `{ id, status, createdAt, progress: { step, percent }, result? }`
+- `POST /api/parse` — accept multi-file upload, start async pipeline, return `jobId`
+- `GET /api/jobs` — list all jobs with status
+- `GET /api/jobs/[id]` — return job status + result when complete
+- `PATCH /api/jobs/[id]` — accept draft edits or approval status
+- Upload form: multi-file drag-and-drop (accept `.pdf`), shows job status after submission
 
 **Phase 1 exit:** Upload a fixture PDF → pipeline completes in < 30 seconds → `learningFlow[]` is returned via `GET /api/jobs/[id]`
 
@@ -281,10 +319,10 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 
 **File:** `src/app/dashboard/page.tsx`
 
-- [ ] List all parse jobs with: client name, document count, status badge, timestamp
-- [ ] Poll `GET /api/jobs` every 2 seconds while any job is `processing`
-- [ ] Status states: `queued`, `denoising`, `understanding`, `planning`, `generating`, `review`, `approved`
-- [ ] Click row → navigate to job detail view
+- List all parse jobs with: client name, document count, status badge, timestamp
+- Poll `GET /api/jobs` every 2 seconds while any job is `processing`
+- Status states: `queued`, `denoising`, `understanding`, `planning`, `generating`, `review`, `approved`
+- Click row → navigate to job detail view
 
 ---
 
@@ -293,10 +331,12 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 **File:** `src/app/dashboard/[id]/page.tsx`
 
 **Layout:** Two-panel view
+
 - **Left panel:** Learning flow overview (ordered activity cards with type badge, title, status)
 - **Right panel:** Selected activity detail + inline editing
 
 **Per-activity detail view (varies by type):**
+
 - **Lesson:** Editable topic list, key terms table
 - **Memorization:** Script segments with speaker labels, estimated duration, split notes
 - **RolePlay:** Persona card, scenario text, scorecard table with editable criteria and point values
@@ -304,6 +344,7 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 - All types: source section citation, confidence indicator, free-form notes field
 
 **Actions per activity:**
+
 - `Approve` — marks activity as approved, moves to next
 - `Flag for revision` — marks as needs-work, keeps in flow
 - `Regenerate` — re-runs Step 4 for this activity only (calls `PATCH /api/jobs/[id]` with `{ action: "regenerate", activityIndex: N }`)
@@ -313,28 +354,28 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 
 ### Export & approval flow
 
-- [ ] `Approve All` button — marks all unflagged activities as approved
-- [ ] `Export JSON` — downloads the full `ParsedTrainingConfig` with only approved activities
-- [ ] Export includes metadata, persona, and filtered `learningFlow[]` (approved only)
-- [ ] Optionally: export individual activity configs as separate JSON files
+- `Approve All` button — marks all unflagged activities as approved
+- `Export JSON` — downloads the full `ParsedTrainingConfig` with only approved activities
+- Export includes metadata, persona, and filtered `learningFlow[]` (approved only)
+- Optionally: export individual activity configs as separate JSON files
 
 ---
 
 ### Progress indicators + persistent storage
 
-- [ ] Pipeline step progress bar during processing (Denoising → Understanding → Planning → Generating)
-- [ ] Swap in-memory store for SQLite via `better-sqlite3` (or file-based JSON store)
-- [ ] Jobs survive server restart
-- [ ] Basic error recovery: if one step fails, job status shows which step failed
+- Pipeline step progress bar during processing (Denoising → Understanding → Planning → Generating)
+- Swap in-memory store for SQLite via `better-sqlite3` (or file-based JSON store)
+- Jobs survive server restart
+- Basic error recovery: if one step fails, job status shows which step failed
 
 ---
 
 ### Polish + multi-document support
 
-- [ ] Multi-document upload: display source document attribution per activity in dashboard
-- [ ] Combined learning flow correctly merges and sequences activities across documents
-- [ ] Error states: unsupported file type, empty PDF, API timeout
-- [ ] Loading skeletons on dashboard while job is processing
+- Multi-document upload: display source document attribution per activity in dashboard
+- Combined learning flow correctly merges and sequences activities across documents
+- Error states: unsupported file type, empty PDF, API timeout
+- Loading skeletons on dashboard while job is processing
 
 **Phase 2 exit:** Upload fixture PDF → review dashboard → approve all activities → export JSON — interaction time minimal vs. manual process.
 
@@ -348,16 +389,18 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 ### Validation Runs
 
 **Run 1 — UHP Training PDF (primary)**
-- [ ] Upload the 29-page UHP/Eco Auto Body PDF
-- [ ] Confirm pipeline completes in < 30 sec
-- [ ] Compare output `learningFlow[]` against manually-expected activities
-- [ ] Document accuracy per activity type (script coverage, objection count, scorecard completeness)
-- [ ] Record `metadata.confidence` score
+
+- Upload the 29-page UHP/Eco Auto Body PDF
+- Confirm pipeline completes in < 30 sec
+- Compare output `learningFlow[]` against manually-expected activities
+- Document accuracy per activity type (script coverage, objection count, scorecard completeness)
+- Record `metadata.confidence` score
 
 **Run 2 — Second client document (TBD)**
-- [ ] Upload a second, structurally different training document
-- [ ] Confirm pipeline handles document variation without prompt changes
-- [ ] Note any activity types that are missed or miscategorized
+
+- Upload a second, structurally different training document
+- Confirm pipeline handles document variation without prompt changes
+- Note any activity types that are missed or miscategorized
 
 **Accuracy Target:** > 90% of conversational content correctly mapped to activity configs before HITL review
 
@@ -372,22 +415,29 @@ Client PDFs → [1] Signal Denoising → [2] Document Understanding
 
 ### Known Risks
 
-| Risk | Mitigation |
-|---|---|
-| LLM hallucinates objection responses | HITL is mandatory — all configs require CEO review before export |
-| Multi-doc conflicts (overlapping content) | Step 3 deduplication logic; source attribution per activity |
+
+| Risk                                                         | Mitigation                                                                                               |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| LLM hallucinates objection responses                         | HITL is mandatory — all configs require CEO review before export                                         |
+| Multi-doc conflicts (overlapping content)                    | Step 3 deduplication logic; source attribution per activity                                              |
 | PDF text extraction quality (images, columns, mixed layouts) | `pdf-parse` handles text layers only; image content is skipped (acceptable for text-heavy training docs) |
-| Objection misclassification (RapidFire vs. RolePlay) | Explicit rule in Step 3 prompt: "Can this be handled in one sentence?" — if no → RolePlay |
-| Token limits on large multi-doc uploads | Steps 1–3 run per-document; Step 4 generates activity-by-activity with separate API calls |
+| Objection misclassification (RapidFire vs. RolePlay)         | Explicit rule in Step 3 prompt: "Can this be handled in one sentence?" — if no → RolePlay                |
+| Token limits on large multi-doc uploads                      | Steps 1–3 run per-document; Step 4 generates activity-by-activity with separate API calls                |
+| Vercel serverless timeout (60s hobby / 5min pro)             | Benchmark pipeline on real fixture PDF; upgrade to Pro or offload to background worker if needed          |
+| Client uploads bad/corrupt PDF                               | Validate file type and extractable text on upload; surface error on intake confirmation page              |
+
 
 ---
 
 ## Success Metrics
 
-| Metric | Current State | Target |
-|---|---|---|
-| Technical build time | 20–30 min (manual) | < 30 seconds (automated) |
-| Total onboarding cycle | 5 hours | ~1.5 hours (meetings + HITL review) |
-| Cost per onboarding | $500 | ~$150 |
-| Annual capacity | ~60 deals | 250+ deals |
-| Draft accuracy before HITL | N/A | > 90% |
+
+| Metric                     | Current State      | Target                              |
+| -------------------------- | ------------------ | ----------------------------------- |
+| Technical build time       | 20–30 min (manual) | < 30 seconds (automated)            |
+| Total onboarding cycle     | 5 hours            | ~1.5 hours (meetings + HITL review) |
+| Cost per onboarding        | $500               | ~$150                               |
+| Annual capacity            | ~60 deals          | 250+ deals                          |
+| Draft accuracy before HITL | N/A                | > 90%                               |
+
+
