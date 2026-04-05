@@ -238,10 +238,26 @@ export default function JobDetailPage() {
   if (job.status === "error") {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
           <p className="text-sm font-medium text-zinc-900">{job.clientName}</p>
           <p className="text-sm text-red-600">Pipeline error: {job.error}</p>
-          <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-700">← Back to jobs</Link>
+          <button
+            onClick={async () => {
+              setJob({ ...job, status: "queued" });
+              await fetch("/api/parse", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ jobId: id }),
+              });
+              router.refresh();
+            }}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+          >
+            Retry pipeline
+          </button>
+          <div>
+            <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-700">← Back to jobs</Link>
+          </div>
         </div>
       </div>
     );
