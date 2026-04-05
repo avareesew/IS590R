@@ -24,14 +24,18 @@ export async function runPipeline(job: ParseJob): Promise<void> {
     // ── Ingest ────────────────────────────────────────────────────────────────
     await updateStatus("denoising", "Extracting documents", 5);
 
+    const CHARS_PER_PAGE_THRESHOLD = 300;
+
     const canonicalDocs = await Promise.all(
       job.blobUrls.map(async (url) => {
         const filename = url.split("/").pop() ?? "document.pdf";
         const buffer = await downloadPdf(url);
-        const [textLayer, vision] = await Promise.all([
-          extractText(buffer, filename),
-          extractWithVision(buffer, filename, client),
-        ]);
+        const textLayer = await extractText(buffer, filename);
+        const density = textLayer.charCount / textLayer.pageCount;
+        const needsVision = density < CHARS_PER_PAGE_THRESHOLD;
+        const vision = needsVision
+          ? await extractWithVision(buffer, filename, client)
+          : { filename, text: "", diagramDescriptions: [] };
         return mergeExtractions(textLayer, vision);
       })
     );
