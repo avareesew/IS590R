@@ -333,7 +333,7 @@ Training Brief + PDFs → [1] Signal Denoising → [2] Document Understanding
 
 ---
 
-### Job list dashboard
+### Job list dashboard ✅ COMPLETE
 
 **File:** `app/dashboard/page.tsx`
 
@@ -344,7 +344,7 @@ Training Brief + PDFs → [1] Signal Denoising → [2] Document Understanding
 
 ---
 
-### Activity review dashboard
+### Activity review dashboard ✅ COMPLETE
 
 **File:** `app/dashboard/[id]/page.tsx`
 

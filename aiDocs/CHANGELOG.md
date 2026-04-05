@@ -4,6 +4,34 @@ All notable documentation and product-spec changes for this repo are listed here
 
 ---
 
+## 2026-04-05 — Phase 2: HITL review dashboard + bug fixes
+
+**Why:** Alta pipeline completed successfully end-to-end in production. Built the review page so the founder can inspect, approve, flag, and export activity configs. Fixed two production bugs discovered during live testing.
+
+### `app/dashboard/[id]/page.tsx` (new)
+
+- Two-panel layout: activity list on left, detail view on right
+- Per-type config rendering: Lesson (topics, key terms, concepts), Memorization (script lines with speaker labels), RolePlay (objective, AI instructions, persona, scorecard), RapidFire (objections with intent badge + response variants), Mirroring (video reference + focus points)
+- Approve / Flag buttons per activity — persists to DB via `PATCH /api/jobs/[id]`
+- Approve All button — marks all activities approved + sets job status to `approved`
+- Export JSON button — downloads filtered `ParsedTrainingConfig` (approved activities only)
+- Confidence score + approved count shown in header
+
+### `lib/blob.ts`
+
+- Fixed: added `Authorization: Bearer` header to `downloadPdf()` — private Vercel Blob URLs require auth token; plain fetch was returning an error page instead of the PDF
+
+### `lib/parser/steps/understand.ts`
+
+- Fixed: chunked input to 10k chars and run chunks in parallel (same pattern as denoise)
+- Fixes "Unterminated string in JSON" error on 29-page docs where output exceeded Haiku's 8192-token limit
+
+### `scripts/migrate.mjs` (new)
+
+- One-time Postgres schema init: creates `jobs` and `intake_tokens` tables with `CREATE TABLE IF NOT EXISTS`
+
+---
+
 ## 2026-04-05 — Phase 1 Steps 2–4 implemented + RolePlay schema updated
 
 **Why:** Full pipeline now operational end-to-end. Steps 2–4 built and smoke tested against Alta 2-page fixture. RolePlay config schema updated to match the actual Replay API format provided by the founder.
