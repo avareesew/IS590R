@@ -9,10 +9,12 @@ import { plan } from "@/lib/parser/steps/plan";
 import { generateAll } from "@/lib/parser/steps/generate";
 
 export async function runPipeline(job: ParseJob): Promise<void> {
-  const sql = getSql();
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  // Create a fresh connection per DB call — Neon serverless closes idle connections
+  // on long-running pipelines, so reusing one sql instance causes fetch failures.
   const updateStatus = async (status: string, step: string, percent: number) => {
+    const sql = getSql();
     await sql`
       UPDATE jobs
       SET status = ${status}, progress = ${JSON.stringify({ step, percent })}, updated_at = NOW()
@@ -97,7 +99,8 @@ export async function runPipeline(job: ParseJob): Promise<void> {
       learningFlow,
     };
 
-    await sql`
+    const sqlFinal = getSql();
+    await sqlFinal`
       UPDATE jobs
       SET status = 'review',
           progress = ${JSON.stringify({ step: "Complete", percent: 100 })},
@@ -110,7 +113,8 @@ export async function runPipeline(job: ParseJob): Promise<void> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[pipeline:${job.id}] error: ${message}`);
-    await sql`
+    const sqlErr = getSql();
+    await sqlErr`
       UPDATE jobs
       SET status = 'error', error = ${message}, updated_at = NOW()
       WHERE id = ${job.id}
