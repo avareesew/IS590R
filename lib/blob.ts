@@ -12,7 +12,14 @@ export async function uploadPdf(
 }
 
 export async function downloadPdf(url: string): Promise<Buffer> {
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to download PDF: ${response.status} ${response.statusText}`);
+  }
   const arrayBuffer = await response.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }
