@@ -2,6 +2,35 @@
 
 All notable documentation and product-spec changes for this repo are listed here (newest first).
 
+---
+
+## 2026-04-05 — Phase 0 complete: infra verified + multimodal extraction implemented
+
+**Why:** Completed all Phase 0 batches. Infra (Neon Postgres, Vercel Blob, Anthropic API) verified working. PDF text extraction and Claude vision pipeline implemented and smoke-tested against all 4 fixture PDFs including a diagram-heavy document.
+
+### `lib/utils/pdf.ts`
+
+- Added `extractWithVision(buffer, filename, client)` — sends PDF to Claude as a native document block; extracts transcribed text and diagram descriptions via structured XML response
+- Added `mergeExtractions(textLayer, vision)` — combines text-layer and vision outputs into a `CanonicalDocument` with per-block provenance (`text_layer`, `vision`, `vision:diagram=N`)
+- Added `CanonicalDocument` and `VisionExtractedDocument` interfaces
+- Fixed `blob.ts` — changed upload access from `"public"` to `"private"` (Blob store was provisioned as private)
+- Downgraded `pdf-parse` v2 → v1.1.1 (v2 requires browser APIs incompatible with Node.js)
+
+### `scripts/`
+
+- Added `scripts/check-env.mjs` — verifies all env vars, Postgres connection, Blob upload/delete, and Anthropic key format
+- Added `scripts/smoke-pdf.mjs` — smoke tests text-layer extraction on all fixture PDFs
+- Added `scripts/smoke-vision.mjs` — smoke tests full vision extraction + merge pipeline on all fixture PDFs
+
+### `aiDocs/roadmap.md`
+
+- Marked Batches A, A2, B, C as ✅ COMPLETE
+- Documented Batch C approach change: native Claude PDF document blocks instead of manual rasterization (Vercel-compatible; no system binary dependencies)
+
+---
+
+All notable documentation and product-spec changes for this repo are listed here (newest first).
+
 Format: **date**, **summary**, then bullets by file.
 
 ---

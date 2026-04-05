@@ -5,7 +5,7 @@ export async function uploadPdf(
   buffer: Buffer
 ): Promise<string> {
   const { url } = await put(`pdfs/${Date.now()}-${filename}`, buffer, {
-    access: "public",
+    access: "private",
     contentType: "application/pdf",
   });
   return url;

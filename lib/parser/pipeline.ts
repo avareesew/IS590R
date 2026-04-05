@@ -1,9 +1,14 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { ParseJob } from "@/types";
 import { getSql } from "@/lib/db";
+import { downloadPdf } from "@/lib/blob";
+import { extractText, extractWithVision, mergeExtractions } from "@/lib/utils/pdf";
+import { denoise } from "@/lib/parser/steps/denoise";
 
-// Stub — steps will be implemented in Phase 1
 export async function runPipeline(job: ParseJob): Promise<void> {
   const sql = getSql();
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
   const updateStatus = async (status: string, step: string, percent: number) => {
     await sql`
       UPDATE jobs
@@ -13,17 +18,43 @@ export async function runPipeline(job: ParseJob): Promise<void> {
   };
 
   try {
+    // ── Ingest: download PDFs, extract + merge canonical text ──────────────────
+    await updateStatus("denoising", "Signal Denoising", 5);
+
+    const canonicalDocs = await Promise.all(
+      job.blobUrls.map(async (url) => {
+        const filename = url.split("/").pop() ?? "document.pdf";
+        const buffer = await downloadPdf(url);
+        const [textLayer, vision] = await Promise.all([
+          extractText(buffer, filename),
+          extractWithVision(buffer, filename, client),
+        ]);
+        return mergeExtractions(textLayer, vision);
+      })
+    );
+
+    const combinedCanonical = canonicalDocs
+      .map((d) => d.canonicalText)
+      .join("\n\n---\n\n");
+
+    // ── Step 1: Signal Denoising ───────────────────────────────────────────────
     await updateStatus("denoising", "Signal Denoising", 10);
-    // Step 1: denoise — coming in Phase 1
+    const { filteredText, noisePercent } = await denoise(combinedCanonical, client);
+    console.log(`[pipeline] denoise: removed ${noisePercent}% noise`);
 
+    // ── Step 2: Document Understanding ────────────────────────────────────────
     await updateStatus("understanding", "Document Understanding", 35);
-    // Step 2: understand — coming in Phase 1
+    // coming in Phase 1
 
+    // ── Step 3: Activity Planning ──────────────────────────────────────────────
     await updateStatus("planning", "Activity Planning", 60);
-    // Step 3: plan — coming in Phase 1
+    // coming in Phase 1
 
+    // ── Step 4: Content Generation ────────────────────────────────────────────
     await updateStatus("generating", "Content Generation", 80);
-    // Step 4: generate — coming in Phase 1
+    // coming in Phase 1
+
+    void filteredText; // will be used by steps 2–4
 
     await updateStatus("review", "Complete", 100);
   } catch (err) {
