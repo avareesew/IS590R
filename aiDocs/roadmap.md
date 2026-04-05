@@ -370,21 +370,19 @@ Training Brief + PDFs → [1] Signal Denoising → [2] Document Understanding
 
 ---
 
-### Export & approval flow
+### Export & approval flow ✅ COMPLETE
 
-- `Approve All` button — marks all unflagged activities as approved
-- `Export JSON` — downloads the full `ParsedTrainingConfig` with only approved activities
-- Export includes metadata, persona, and filtered `learningFlow[]` (approved only)
-- Optionally: export individual activity configs as separate JSON files
+- `Approve All` button — marks all activities approved + sets job status to `approved`
+- `Export JSON` — downloads filtered `ParsedTrainingConfig` (approved activities only); filename is `{client-name}-training.json`
+- Export includes metadata, persona, and filtered `learningFlow[]`
 
 ---
 
-### Progress indicators + persistent storage
+### Progress indicators + persistent storage ✅ COMPLETE
 
-- Pipeline step progress bar during processing (Denoising → Understanding → Planning → Generating)
-- Swap in-memory store for SQLite via `better-sqlite3` (or file-based JSON store)
-- Jobs survive server restart
-- Basic error recovery: if one step fails, job status shows which step failed
+- Job status cycles through: `queued → denoising → understanding → planning → generating → review → approved`
+- All job state persisted to Neon Postgres — survives server restarts
+- Error state captured per-job with message shown in detail view
 
 ---
 
@@ -395,7 +393,7 @@ Training Brief + PDFs → [1] Signal Denoising → [2] Document Understanding
 - Error states: unsupported file type, empty PDF, API timeout
 - Loading skeletons on dashboard while job is processing
 
-**Phase 2 exit:** Upload fixture PDF → review dashboard → approve all activities → export JSON — interaction time minimal vs. manual process.
+**Phase 2 exit:** ✅ Alta pipeline completed end-to-end in production. Review dashboard live — founder can inspect all activity configs, approve/flag individually or approve all, and export JSON.
 
 ---
 
