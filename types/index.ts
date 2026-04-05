@@ -78,22 +78,42 @@ export interface MemorizationConfig {
   notes: string;
 }
 
+export interface RolePlayCriterion {
+  title: string;
+  prompt: string;
+  description: string;
+  criterionType: "YesNoQuestion" | "RangeQuestion" | "OpenEndedQuestion";
+}
+
+export interface RolePlaySection {
+  title: string;
+  criteria: RolePlayCriterion[];
+}
+
 export interface RolePlayConfig {
-  persona: {
+  title: string;
+  instructions: string;
+  objective: string;
+  passingScore: number;
+  conversationStarters: string[];
+  language: string;
+  isBlind: boolean;
+  roleplayType: "Train" | "Assess";
+  shouldActAsCustomer: boolean;
+  tags: string[];
+  keyterms: string[];
+  customerPersona: {
     name: string;
     role: string;
     demeanor: string;
     backstory: string;
     commonObjections: string[];
   };
-  scenario: string;
-  difficulty: "beginner" | "intermediate" | "advanced";
-  passingScore: number;
-  scorecard: {
-    section: string;
-    criteria: string;
-    maxPoints: number;
-    evaluationMethod: "keyword_match" | "sentiment" | "manual";
+  sections: RolePlaySection[];
+  variables: {
+    name: string;
+    variants: { name: string; content: string }[];
+    selectedVariantName: string;
   }[];
 }
 

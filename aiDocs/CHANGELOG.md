@@ -4,6 +4,71 @@ All notable documentation and product-spec changes for this repo are listed here
 
 ---
 
+## 2026-04-05 — Phase 1 Steps 2–4 implemented + RolePlay schema updated
+
+**Why:** Full pipeline now operational end-to-end. Steps 2–4 built and smoke tested against Alta 2-page fixture. RolePlay config schema updated to match the actual Replay API format provided by the founder.
+
+### `lib/parser/steps/understand.ts` (new)
+
+- `understand(filteredText, brief, client)` — tags filtered text into typed sections: `script`, `objection-list`, `tactical-advice`, `value-prop`, `process-steps`, `persona`, `industry-context`, `video-reference`
+- Training brief passed as prioritization directive — topics in brief get higher-fidelity tagging
+- Returns `TaggedSection[]` with `tag`, `subtype` (for scripts: `intro` | `close` | `null`), `content`, `sourceDocument`, `sourceSection`
+
+### `lib/parser/steps/plan.ts` (updated)
+
+- Full prompt rewrite incorporating Training Orchestration logic from founder
+- Consolidation rules: target 4–8 activities; combine all foundational sections into one Lesson; combine all scripts into Memorization; combine all quick objections into one RapidFire
+- Companion pairing: when Memorization script exists, always recommend a companion script-derived RolePlay
+- RapidFire vs RolePlay test: "Can this be handled in one sentence?" — if yes → RapidFire; if no → RolePlay
+
+### `lib/parser/steps/generate.ts` (updated)
+
+- `generateAll()` runs all activity config generations in parallel via `Promise.all` (was sequential)
+- RolePlay `CONFIG_SCHEMAS` updated to match real Replay API format
+- Generation rules updated: `criterionType` guidance (`YesNoQuestion` for binary, `RangeQuestion` for scored, `OpenEndedQuestion` for holistic), personality variants (Easy/Medium/Hard) always included
+
+### `lib/parser/steps/denoise.ts` (updated)
+
+- Chunked denoising: input split into 12k-char chunks, all chunks denoised in parallel
+- Fixes multi-minute API hangs on large docs (29-page fixture was timing out as one call)
+
+### `types/index.ts`
+
+- `RolePlayConfig` rebuilt to match actual Replay API format
+- Added `RolePlayCriterion` and `RolePlaySection` interfaces
+- `criterionType`: `"YesNoQuestion" | "RangeQuestion" | "OpenEndedQuestion"`
+- `sections[]` replaces old `scorecard[]`; `variables[]` with Easy/Medium/Hard personality variants added
+
+### `scripts/smoke-pipeline.mjs` (new)
+
+- End-to-end pipeline smoke test (no Postgres/Blob required — reads fixtures directly)
+- Inline RolePlay schema updated to match Replay API format
+- Smoke test result (Alta, 2-page): 11 sections tagged, 10 activities planned and generated in parallel
+
+---
+
+## 2026-04-05 — Phase 1 Step 1: Signal Denoising implemented
+
+**Why:** First AI pipeline step built and smoke tested. Strips non-training noise from canonical PDF text before downstream steps run.
+
+### `lib/parser/steps/denoise.ts` (new)
+
+- `denoise(canonicalText, client)` — calls Claude with a system prompt that removes noise (welcome letters, commission tables, schedules, dress code) while preserving scripts, objections, value props, personas, and frameworks
+- Returns `{ filteredText, noisePercent }` — noisePercent is a rough heuristic based on char count delta
+- Smoke tested: 30% noise removed from exampleone (29-page doc); 6–11% from script-only docs (correct — those had minimal noise)
+
+### `lib/parser/pipeline.ts`
+
+- Wired in full ingest phase: downloads PDFs from Vercel Blob, runs `extractText` + `extractWithVision` in parallel, merges into canonical text
+- Step 1 (`denoise`) now called with real output; Steps 2–4 still stubbed
+
+### `aiDocs/roadmap.md`
+
+- Step 1 marked ✅ COMPLETE with validation results
+- Fixed all `src/lib/` → `lib/` and `src/app/` → `app/` path references throughout Phase 1
+
+---
+
 ## 2026-04-05 — Phase 0 complete: infra verified + multimodal extraction implemented
 
 **Why:** Completed all Phase 0 batches. Infra (Neon Postgres, Vercel Blob, Anthropic API) verified working. PDF text extraction and Claude vision pipeline implemented and smoke-tested against all 4 fixture PDFs including a diagram-heavy document.

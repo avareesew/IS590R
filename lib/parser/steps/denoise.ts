@@ -31,27 +31,48 @@ KEEP the following (they are training signal):
 
 Return ONLY the filtered text. Do not write any preamble, intro sentence, header, or explanation before or after the content. Do not summarize — preserve the original wording of kept content exactly as written.`;
 
-export async function denoise(
-  canonicalText: string,
-  client: Anthropic
-): Promise<DenoiseResult> {
+const CHUNK_SIZE = 12000;
+
+function chunkText(text: string): string[] {
+  const chunks: string[] = [];
+  // Split on double newlines to avoid cutting mid-sentence
+  const paragraphs = text.split(/\n{2,}/);
+  let current = "";
+  for (const para of paragraphs) {
+    if (current.length + para.length > CHUNK_SIZE && current.length > 0) {
+      chunks.push(current.trim());
+      current = para;
+    } else {
+      current += (current ? "\n\n" : "") + para;
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks;
+}
+
+async function denoiseChunk(chunk: string, client: Anthropic): Promise<string> {
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 8192,
     system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: canonicalText,
-      },
-    ],
+    messages: [{ role: "user", content: chunk }],
   });
-
-  const filteredText = response.content
+  return response.content
     .filter((b) => b.type === "text")
     .map((b) => (b as Anthropic.TextBlock).text)
     .join("")
     .trim();
+}
+
+export async function denoise(
+  canonicalText: string,
+  client: Anthropic
+): Promise<DenoiseResult> {
+  const chunks = chunkText(canonicalText);
+  const filteredChunks = await Promise.all(
+    chunks.map((chunk) => denoiseChunk(chunk, client))
+  );
+  const filteredText = filteredChunks.join("\n\n");
 
   const noisePercent =
     canonicalText.length > 0
