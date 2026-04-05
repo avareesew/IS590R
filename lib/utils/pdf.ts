@@ -1,10 +1,10 @@
-import * as pdfParseModule from "pdf-parse";
 import Anthropic from "@anthropic-ai/sdk";
 
-// pdf-parse exports differently depending on bundler; handle both shapes
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Import from internal path to avoid pdf-parse's self-test running at build time
+// (the default entry point reads ./test/data/05-versions-space.pdf on load)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdfParse: (buf: Buffer) => Promise<{ text: string; numpages: number }> =
-  (pdfParseModule as any).default ?? pdfParseModule;
+  require("pdf-parse/lib/pdf-parse.js");
 
 // ─── Text layer extraction (FR-02) ────────────────────────────────────────────
 
