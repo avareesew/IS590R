@@ -35,6 +35,16 @@ Schema:
   }
 ]`;
 
+const CHUNK_SIZE = 10000;
+
+function chunkText(text: string): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+    chunks.push(text.slice(i, i + CHUNK_SIZE));
+  }
+  return chunks;
+}
+
 function buildUserMessage(filteredText: string, brief: TrainingBrief): string {
   const topicLine =
     brief.topics.length > 0
@@ -53,7 +63,6 @@ function buildUserMessage(filteredText: string, brief: TrainingBrief): string {
 }
 
 function parseJson(raw: string): TaggedSection[] {
-  // Strip markdown code fences if present
   const cleaned = raw
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/, "")
@@ -61,22 +70,16 @@ function parseJson(raw: string): TaggedSection[] {
   return JSON.parse(cleaned);
 }
 
-export async function understand(
-  filteredText: string,
+async function understandChunk(
+  chunk: string,
   brief: TrainingBrief,
-  sourceDocument: string,
   client: Anthropic
-): Promise<UnderstandResult> {
+): Promise<TaggedSection[]> {
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 8192,
     system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: buildUserMessage(filteredText, brief),
-      },
-    ],
+    messages: [{ role: "user", content: buildUserMessage(chunk, brief) }],
   });
 
   const raw = response.content
@@ -85,7 +88,21 @@ export async function understand(
     .join("")
     .trim();
 
-  const sections: TaggedSection[] = parseJson(raw);
+  return parseJson(raw);
+}
+
+export async function understand(
+  filteredText: string,
+  brief: TrainingBrief,
+  sourceDocument: string,
+  client: Anthropic
+): Promise<UnderstandResult> {
+  const chunks = chunkText(filteredText);
+  const chunkResults = await Promise.all(
+    chunks.map((chunk) => understandChunk(chunk, brief, client))
+  );
+
+  const sections: TaggedSection[] = chunkResults.flat();
 
   // Stamp sourceDocument on every section
   return sections.map((s) => ({ ...s, sourceDocument }));
