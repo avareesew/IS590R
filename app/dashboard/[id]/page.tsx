@@ -22,9 +22,9 @@ const ACTIVITY_COLORS: Record<string, string> = {
 };
 
 const APPROVAL_COLORS: Record<string, string> = {
-  draft: "bg-zinc-100 text-zinc-500",
+  draft: "bg-gray-100 text-gray-500",
   approved: "bg-green-50 text-green-700",
-  flagged: "bg-red-50 text-red-600",
+  flagged: "bg-red-50 text-red-500",
 };
 
 interface JobData {
@@ -40,22 +40,22 @@ function LessonDetail({ config }: { config: LessonConfig }) {
     <div className="space-y-4">
       {config.topics.length > 0 && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-2">Topics</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-2">Topics</p>
           <ul className="space-y-1">
             {config.topics.map((t, i) => (
-              <li key={i} className="text-sm text-zinc-700">{t}</li>
+              <li key={i} className="text-sm text-gray-700">{t}</li>
             ))}
           </ul>
         </div>
       )}
       {config.keyTerms.length > 0 && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-2">Key Terms</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-2">Key Terms</p>
           <div className="space-y-2">
             {config.keyTerms.map((kt, i) => (
               <div key={i}>
-                <span className="text-sm font-medium text-zinc-900">{kt.term}</span>
-                <span className="text-sm text-zinc-500"> — {kt.definition}</span>
+                <span className="text-sm font-medium text-gray-900">{kt.term}</span>
+                <span className="text-sm text-gray-500"> — {kt.definition}</span>
               </div>
             ))}
           </div>
@@ -63,10 +63,10 @@ function LessonDetail({ config }: { config: LessonConfig }) {
       )}
       {config.concepts.length > 0 && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-2">Concepts</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-2">Concepts</p>
           <ul className="space-y-1">
             {config.concepts.map((c, i) => (
-              <li key={i} className="text-sm text-zinc-700">{c}</li>
+              <li key={i} className="text-sm text-gray-700">{c}</li>
             ))}
           </ul>
         </div>
@@ -79,20 +79,20 @@ function MemorizationDetail({ config }: { config: MemorizationConfig }) {
   return (
     <div className="space-y-4">
       {config.notes && (
-        <p className="text-sm text-zinc-500 italic">{config.notes}</p>
+        <p className="text-sm text-gray-500 italic">{config.notes}</p>
       )}
       {config.segments.map((seg, i) => (
         <div key={i}>
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-2">
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-2">
             {seg.label} · ~{seg.estimatedDurationMin} min
           </p>
           <div className="space-y-1.5">
             {seg.lines.map((line, j) => (
               <div key={j} className="flex gap-3">
-                <span className={`text-xs font-medium w-16 shrink-0 pt-0.5 ${line.speaker === "rep" ? "text-blue-600" : "text-zinc-400"}`}>
+                <span className={`text-xs font-medium w-16 shrink-0 pt-0.5 ${line.speaker === "rep" ? "text-blue-600" : "text-gray-400"}`}>
                   {line.speaker === "rep" ? "REP" : "CUSTOMER"}
                 </span>
-                <p className="text-sm text-zinc-700">{line.text}</p>
+                <p className="text-sm text-gray-700">{line.text}</p>
               </div>
             ))}
           </div>
@@ -106,36 +106,36 @@ function RolePlayDetail({ config }: { config: RolePlayConfig }) {
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-1">Objective</p>
-        <p className="text-sm text-zinc-700">{config.objective}</p>
+        <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-1">Objective</p>
+        <p className="text-sm text-gray-700">{config.objective}</p>
       </div>
       <div>
-        <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-1">AI Instructions</p>
-        <p className="text-sm text-zinc-700">{config.instructions}</p>
+        <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-1">AI Instructions</p>
+        <p className="text-sm text-gray-700">{config.instructions}</p>
       </div>
       {config.customerPersona && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-2">Customer Persona</p>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 space-y-1">
-            <p className="text-sm font-medium text-zinc-900">{config.customerPersona.name} · {config.customerPersona.role}</p>
-            <p className="text-sm text-zinc-500">{config.customerPersona.demeanor}</p>
-            <p className="text-sm text-zinc-600">{config.customerPersona.backstory}</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-2">Customer Persona</p>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 space-y-1">
+            <p className="text-sm font-medium text-gray-900">{config.customerPersona.name} · {config.customerPersona.role}</p>
+            <p className="text-sm text-gray-500">{config.customerPersona.demeanor}</p>
+            <p className="text-sm text-gray-600">{config.customerPersona.backstory}</p>
           </div>
         </div>
       )}
       {config.sections?.length > 0 && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-2">Scorecard</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-2">Scorecard</p>
           <div className="space-y-3">
             {config.sections.map((section, i) => (
               <div key={i}>
-                <p className="text-sm font-medium text-zinc-700 mb-1">{section.title}</p>
+                <p className="text-sm font-medium text-gray-700 mb-1">{section.title}</p>
                 <ul className="space-y-1">
                   {section.criteria.map((c, j) => (
                     <li key={j} className="flex gap-2 text-sm">
-                      <span className="text-zinc-400 shrink-0">·</span>
-                      <span className="text-zinc-600">{c.title}</span>
-                      <span className="text-zinc-400 text-xs pt-0.5">({c.criterionType})</span>
+                      <span className="text-gray-400 shrink-0">·</span>
+                      <span className="text-gray-600">{c.title}</span>
+                      <span className="text-gray-400 text-xs pt-0.5">({c.criterionType})</span>
                     </li>
                   ))}
                 </ul>
@@ -144,7 +144,7 @@ function RolePlayDetail({ config }: { config: RolePlayConfig }) {
           </div>
         </div>
       )}
-      <div className="flex gap-4 text-sm text-zinc-500">
+      <div className="flex gap-4 text-sm text-gray-500">
         <span>Passing score: {config.passingScore}%</span>
         <span>Type: {config.roleplayType}</span>
       </div>
@@ -156,9 +156,9 @@ function RapidFireDetail({ config }: { config: RapidFireConfig }) {
   return (
     <div className="space-y-3">
       {config.objections.map((obj, i) => (
-        <div key={i} className="rounded-lg border border-zinc-200 bg-white px-4 py-3 space-y-2">
+        <div key={i} className="rounded-lg border border-gray-200 bg-white px-4 py-3 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-zinc-900">"{obj.trigger}"</span>
+            <span className="text-sm font-medium text-gray-900">"{obj.trigger}"</span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               obj.intent === "Agree" ? "bg-green-50 text-green-700" :
               obj.intent === "Redirect" ? "bg-amber-50 text-amber-700" :
@@ -167,7 +167,7 @@ function RapidFireDetail({ config }: { config: RapidFireConfig }) {
           </div>
           <div className="space-y-1">
             {obj.responseOptions.map((r, j) => (
-              <p key={j} className="text-sm text-zinc-600 pl-3 border-l-2 border-zinc-200">{r}</p>
+              <p key={j} className="text-sm text-gray-600 pl-3 border-l-2 border-gray-200">{r}</p>
             ))}
           </div>
         </div>
@@ -180,15 +180,15 @@ function MirroringDetail({ config }: { config: MirroringConfig }) {
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-1">Video Reference</p>
-        <p className="text-sm text-zinc-700">{config.videoReference}</p>
+        <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-1">Video Reference</p>
+        <p className="text-sm text-gray-700">{config.videoReference}</p>
       </div>
       {config.focusPoints.length > 0 && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-400 mb-2">Focus Points</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-2">Focus Points</p>
           <ul className="space-y-1">
             {config.focusPoints.map((fp, i) => (
-              <li key={i} className="text-sm text-zinc-700">· {fp}</li>
+              <li key={i} className="text-sm text-gray-700">· {fp}</li>
             ))}
           </ul>
         </div>
@@ -229,18 +229,19 @@ export default function JobDetailPage() {
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <p className="text-sm text-zinc-400">Loading...</p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-sm text-gray-400">Loading...</p>
       </div>
     );
   }
 
   if (job.status === "error") {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
-        <div className="text-center space-y-3">
-          <p className="text-sm font-medium text-zinc-900">{job.clientName}</p>
-          <p className="text-sm text-red-600">Pipeline error: {job.error}</p>
+      <div className="min-h-screen bg-white flex items-center justify-center p-8">
+        <div className="text-center space-y-4 max-w-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Pipeline error</p>
+          <h1 className="text-2xl font-bold tracking-tight text-black">{job.clientName}</h1>
+          <p className="text-sm text-red-500">{job.error}</p>
           <button
             onClick={async () => {
               setJob({ ...job, status: "queued" });
@@ -251,13 +252,11 @@ export default function JobDetailPage() {
               });
               router.refresh();
             }}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+            className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white hover:bg-gray-900 transition-colors"
           >
             Retry pipeline
           </button>
-          <div>
-            <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-700">← Back to jobs</Link>
-          </div>
+          <Link href="/dashboard" className="block text-sm text-gray-400 hover:text-black transition-colors">← Back to jobs</Link>
         </div>
       </div>
     );
@@ -265,11 +264,12 @@ export default function JobDetailPage() {
 
   if (!job.result) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
-        <div className="text-center space-y-2">
-          <p className="text-sm font-medium text-zinc-900">{job.clientName}</p>
-          <p className="text-sm text-zinc-500">Pipeline is still running ({job.status})...</p>
-          <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-700">← Back to jobs</Link>
+      <div className="min-h-screen bg-white flex items-center justify-center p-8">
+        <div className="text-center space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Processing</p>
+          <h1 className="text-2xl font-bold tracking-tight text-black">{job.clientName}</h1>
+          <p className="text-sm text-gray-500">Pipeline is running ({job.status})...</p>
+          <Link href="/dashboard" className="block text-sm text-gray-400 hover:text-black transition-colors">← Back to jobs</Link>
         </div>
       </div>
     );
@@ -328,88 +328,86 @@ export default function JobDetailPage() {
   const confidence = job.result.metadata.confidence;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
-      <div className="border-b border-zinc-200 bg-white px-6 py-4">
-        <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-700">← Jobs</Link>
-            <div>
-              <h1 className="text-sm font-semibold text-zinc-900">{job.clientName}</h1>
-              <p className="text-xs text-zinc-400">
-                {flow.length} activities · {approvedCount} approved · confidence {Math.round(confidence * 100)}%
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={approveAll}
-              disabled={saving}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
-            >
-              Approve all
-            </button>
-            <button
-              onClick={exportJson}
-              disabled={approvedCount === 0}
-              className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-40"
-            >
-              Export JSON ({approvedCount})
-            </button>
+      <header className="border-b border-gray-100 px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-sm text-gray-400 hover:text-black transition-colors">← Jobs</Link>
+          <div>
+            <h1 className="text-sm font-semibold text-black">{job.clientName}</h1>
+            <p className="text-xs text-gray-400">
+              {flow.length} activities · {approvedCount} approved · confidence {Math.round(confidence * 100)}%
+            </p>
           </div>
         </div>
-      </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={approveAll}
+            disabled={saving}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-gray-400 disabled:opacity-40 transition-colors"
+          >
+            Approve all
+          </button>
+          <button
+            onClick={exportJson}
+            disabled={approvedCount === 0}
+            className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-30 transition-colors"
+          >
+            Export JSON ({approvedCount})
+          </button>
+        </div>
+      </header>
 
       {/* Two-panel layout */}
-      <div className="mx-auto max-w-6xl flex gap-6 p-6">
+      <div className="flex-1 flex gap-0">
         {/* Left: activity list */}
-        <div className="w-64 shrink-0 space-y-1.5">
+        <div className="w-64 shrink-0 border-r border-gray-100 p-4 space-y-1.5 overflow-y-auto">
           {flow.map((item, i) => (
             <button
               key={i}
               onClick={() => setSelected(i)}
-              className={`w-full text-left rounded-lg border px-3 py-2.5 transition-colors ${
+              className={`w-full text-left rounded-xl border px-3 py-3 transition-colors ${
                 selected === i
-                  ? "border-zinc-900 bg-white"
-                  : "border-zinc-200 bg-white hover:border-zinc-300"
+                  ? "border-black bg-white"
+                  : "border-gray-100 bg-white hover:border-gray-300"
               }`}
             >
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ACTIVITY_COLORS[item.activityType]}`}>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ACTIVITY_COLORS[item.activityType]}`}>
                   {item.activityType}
                 </span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${APPROVAL_COLORS[item.approvalStatus]}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${APPROVAL_COLORS[item.approvalStatus]}`}>
                   {item.approvalStatus}
                 </span>
               </div>
-              <p className="text-xs text-zinc-700 font-medium leading-snug">{item.title}</p>
+              <p className="text-xs text-black font-medium leading-snug">{item.title}</p>
             </button>
           ))}
         </div>
 
         {/* Right: activity detail */}
-        <div className="flex-1 min-w-0">
-          <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
+        <div className="flex-1 min-w-0 p-8 overflow-y-auto">
+          <div className="max-w-2xl space-y-6">
             {/* Activity header */}
             <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${ACTIVITY_COLORS[activity.activityType]}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ACTIVITY_COLORS[activity.activityType]}`}>
                     {activity.activityType}
                   </span>
-                  <span className="text-xs text-zinc-400">#{activity.sequencePosition}</span>
+                  <span className="text-xs text-gray-400">#{activity.sequencePosition}</span>
                 </div>
-                <h2 className="text-base font-semibold text-zinc-900">{activity.title}</h2>
-                <p className="text-xs text-zinc-400">Source: {activity.sourceSection}</p>
+                <h2 className="text-xl font-bold tracking-tight text-black">{activity.title}</h2>
+                <p className="text-xs text-gray-400">Source: {activity.sourceSection}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setApprovalStatus(selected, "flagged")}
                   disabled={saving}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 ${
+                  className={`rounded-xl border px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-40 ${
                     activity.approvalStatus === "flagged"
-                      ? "border-red-300 bg-red-50 text-red-600"
-                      : "border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50"
+                      ? "border-red-300 bg-red-50 text-red-500"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
                   }`}
                 >
                   Flag
@@ -417,10 +415,10 @@ export default function JobDetailPage() {
                 <button
                   onClick={() => setApprovalStatus(selected, "approved")}
                   disabled={saving}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 ${
+                  className={`rounded-xl border px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-40 ${
                     activity.approvalStatus === "approved"
                       ? "border-green-300 bg-green-50 text-green-700"
-                      : "border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
                   }`}
                 >
                   Approve
@@ -428,7 +426,7 @@ export default function JobDetailPage() {
               </div>
             </div>
 
-            <div className="border-t border-zinc-100" />
+            <div className="border-t border-gray-100" />
 
             {/* Activity config */}
             <ActivityConfig item={activity} />

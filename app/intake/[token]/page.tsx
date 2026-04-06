@@ -15,10 +15,11 @@ export default async function IntakePage({
 
   if (rows.length === 0) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-xl font-semibold text-zinc-900">Link not found</h1>
-          <p className="text-sm text-zinc-500">
+      <div className="min-h-screen bg-white flex items-center justify-center p-8">
+        <div className="text-center space-y-3 max-w-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Replay</p>
+          <h1 className="text-2xl font-bold tracking-tight text-black">Link not found</h1>
+          <p className="text-sm text-gray-500">
             This intake link is invalid. Please contact your Replay representative.
           </p>
         </div>
@@ -30,10 +31,11 @@ export default async function IntakePage({
 
   if (status === "submitted") {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-xl font-semibold text-zinc-900">Already submitted</h1>
-          <p className="text-sm text-zinc-500">
+      <div className="min-h-screen bg-white flex items-center justify-center p-8">
+        <div className="text-center space-y-3 max-w-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Replay</p>
+          <h1 className="text-2xl font-bold tracking-tight text-black">Already submitted</h1>
+          <p className="text-sm text-gray-500">
             We already received your materials for <strong>{clientName}</strong>.
             Your Replay representative will be in touch soon.
           </p>
