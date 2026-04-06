@@ -1,4 +1,6 @@
-import { getSql } from "@/lib/db";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -12,15 +14,26 @@ const STATUS_COLORS: Record<string, string> = {
   error: "bg-red-50 text-red-600",
 };
 
-export const dynamic = "force-dynamic";
+interface JobRow {
+  id: string;
+  client_name: string;
+  status: string;
+  created_at: string;
+}
 
-export default async function DashboardPage() {
-  const sql = getSql();
-  const rows = await sql`
-    SELECT id, client_name, status, progress, created_at
-    FROM jobs
-    ORDER BY created_at DESC
-  `;
+export default function DashboardPage() {
+  const [jobs, setJobs] = useState<JobRow[]>([]);
+
+  useEffect(() => {
+    fetch("/api/jobs")
+      .then((r) => r.json())
+      .then(setJobs);
+  }, []);
+
+  async function deleteJob(id: string) {
+    await fetch(`/api/jobs/${id}`, { method: "DELETE" });
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 py-12 px-4">
@@ -35,17 +48,17 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {rows.length === 0 ? (
+        {jobs.length === 0 ? (
           <p className="text-sm text-zinc-400">
             No jobs yet. Create a client and send them an intake link.
           </p>
         ) : (
           <ul className="space-y-2">
-            {rows.map((row) => (
-              <li key={row.id}>
+            {jobs.map((row) => (
+              <li key={row.id} className="flex items-center gap-2">
                 <Link
                   href={`/dashboard/${row.id}`}
-                  className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3 hover:border-zinc-300 transition-colors"
+                  className="flex flex-1 items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3 hover:border-zinc-300 transition-colors"
                 >
                   <div className="space-y-0.5">
                     <p className="text-sm font-medium text-zinc-900">
@@ -68,6 +81,13 @@ export default async function DashboardPage() {
                     {row.status}
                   </span>
                 </Link>
+                <button
+                  onClick={() => deleteJob(row.id)}
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-3 text-zinc-400 hover:border-red-200 hover:text-red-500 transition-colors"
+                  title="Delete job"
+                >
+                  ×
+                </button>
               </li>
             ))}
           </ul>
