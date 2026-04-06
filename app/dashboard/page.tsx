@@ -5,10 +5,10 @@ import Link from "next/link";
 
 const STATUS_COLORS: Record<string, string> = {
   queued: "bg-gray-100 text-gray-500",
-  denoising: "bg-[#eef3fc] text-[#1a5eba]",
-  understanding: "bg-[#eef3fc] text-[#1a5eba]",
-  planning: "bg-[#eef3fc] text-[#1a5eba]",
-  generating: "bg-[#eef3fc] text-[#1a5eba]",
+  denoising: "bg-[#e8f3ff] text-[#1787ff]",
+  understanding: "bg-[#e8f3ff] text-[#1787ff]",
+  planning: "bg-[#e8f3ff] text-[#1787ff]",
+  generating: "bg-[#e8f3ff] text-[#1787ff]",
   review: "bg-amber-50 text-amber-600",
   approved: "bg-green-50 text-green-700",
   error: "bg-red-50 text-red-500",
@@ -42,7 +42,7 @@ export default function DashboardPage() {
         <span className="text-sm font-semibold tracking-tight text-black">Replay Parser</span>
         <Link
           href="/"
-          className="rounded-xl bg-[#1a5eba] hover:bg-[#1649a0] px-4 py-2 text-sm font-semibold text-white transition-colors"
+          className="rounded-xl bg-[#1787ff] hover:bg-[#1270e0] px-4 py-2 text-sm font-semibold text-white transition-colors"
         >
           + New client
         </Link>

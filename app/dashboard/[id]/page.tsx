@@ -252,7 +252,7 @@ export default function JobDetailPage() {
               });
               router.refresh();
             }}
-            className="w-full rounded-xl bg-[#1a5eba] hover:bg-[#1649a0] px-4 py-3 text-sm font-semibold text-white transition-colors"
+            className="w-full rounded-xl bg-[#1787ff] hover:bg-[#1270e0] px-4 py-3 text-sm font-semibold text-white transition-colors"
           >
             Retry pipeline
           </button>
@@ -351,7 +351,7 @@ export default function JobDetailPage() {
           <button
             onClick={exportJson}
             disabled={approvedCount === 0}
-            className="rounded-xl bg-[#1a5eba] hover:bg-[#1649a0] px-4 py-2 text-sm font-semibold text-white disabled:opacity-30 transition-colors"
+            className="rounded-xl bg-[#1787ff] hover:bg-[#1270e0] px-4 py-2 text-sm font-semibold text-white disabled:opacity-30 transition-colors"
           >
             Export JSON ({approvedCount})
           </button>
@@ -368,7 +368,7 @@ export default function JobDetailPage() {
               onClick={() => setSelected(i)}
               className={`w-full text-left rounded-xl border px-3 py-3 transition-colors ${
                 selected === i
-                  ? "border-[#1a5eba] bg-white"
+                  ? "border-[#1787ff] bg-white"
                   : "border-gray-100 bg-white hover:border-gray-300"
               }`}
             >
@@ -417,7 +417,7 @@ export default function JobDetailPage() {
                   disabled={saving}
                   className={`rounded-xl border px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-40 ${
                     activity.approvalStatus === "approved"
-                      ? "border-[#1a5eba] bg-[#eef3fc] text-[#1a5eba]"
+                      ? "border-[#1787ff] bg-[#e8f3ff] text-[#1787ff]"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
                   }`}
                 >
