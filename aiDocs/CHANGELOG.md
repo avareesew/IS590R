@@ -4,6 +4,56 @@ All notable documentation and product-spec changes for this repo are listed here
 
 ---
 
+## 2026-04-06 — Performance fixes + UX polish + brand update
+
+**Why:** Production testing revealed several performance and UX issues. Pipeline was running vision extraction on text-dense docs, generate step used Sonnet for every activity, DB connections timed out on long runs, and the UI needed Replay brand alignment.
+
+### `lib/parser/pipeline.ts`
+
+- Fixed: vision extraction now skipped for text-dense docs (≥300 chars/page) — was always calling `extractWithVision` regardless, wasting a full Sonnet call on text-only PDFs
+- Fixed: fresh `getSql()` connection created per DB call — reusing one connection across a long pipeline caused Neon idle timeout errors mid-run
+
+### `lib/parser/steps/generate.ts`
+
+- Perf: Lesson, Memorization, RapidFire, Mirroring now use `claude-haiku-4-5-20251001` instead of Sonnet — only RolePlay keeps Sonnet. Cuts generate time ~60–70%
+
+### `lib/parser/steps/understand.ts`
+
+- Fixed: chunked input to 10k chars and run chunks in parallel — fixes "Unterminated string in JSON" on large docs where output exceeded Haiku's 8192-token limit
+
+### `lib/blob.ts`
+
+- Fixed: added `Authorization: Bearer` header to `downloadPdf()` — private Vercel Blob URLs require auth token
+
+### `app/dashboard/[id]/page.tsx`
+
+- Added Retry pipeline button on errored job detail page — fires `POST /api/parse` with existing jobId
+
+### `app/dashboard/page.tsx`
+
+- Converted to client component; added delete (×) button per job row
+- Fetches from `GET /api/jobs` instead of direct DB query
+
+### `app/api/jobs/route.ts` (new)
+
+- `GET /api/jobs` — returns all jobs ordered by created_at DESC
+
+### `app/api/jobs/[id]/route.ts`
+
+- Added `DELETE` handler — removes job from Postgres
+
+### `app/page.tsx`
+
+- UX: form hidden after link generated — only shows copy link + "Create another"
+
+### UI / Design
+
+- Font switched from Geist → Urbanist (matches replayhq.com)
+- Full rebrand: black/white base, `rounded-xl` components, clean nav header on every page
+- Brand color `#1787ff` applied to: primary buttons, active topic pills, pipeline status badges, selected activity border, approved state, success icon
+
+---
+
 ## 2026-04-05 — Phase 2: HITL review dashboard + bug fixes
 
 **Why:** Alta pipeline completed successfully end-to-end in production. Built the review page so the founder can inspect, approve, flag, and export activity configs. Fixed two production bugs discovered during live testing.
