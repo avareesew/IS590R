@@ -95,7 +95,7 @@ export default function IntakeForm({
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-8">
         <div className="text-center space-y-4 max-w-sm">
-          <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 rounded-full bg-[#1a5eba] flex items-center justify-center mx-auto">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
@@ -147,7 +147,7 @@ export default function IntakeForm({
                       onClick={() => toggleTopic(topic)}
                       className={`rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
                         active
-                          ? "bg-black text-white border-black"
+                          ? "bg-[#1a5eba] text-white border-[#1a5eba]"
                           : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
                       }`}
                     >
@@ -231,7 +231,7 @@ export default function IntakeForm({
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white disabled:opacity-30 hover:bg-gray-900 transition-colors"
+              className="w-full rounded-xl bg-[#1a5eba] hover:bg-[#1649a0] px-4 py-3 text-sm font-semibold text-white disabled:opacity-30 transition-colors"
             >
               {submitting ? "Uploading…" : "Submit materials"}
             </button>

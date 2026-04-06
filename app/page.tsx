@@ -70,7 +70,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading || !clientName.trim()}
-                className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white disabled:opacity-30 hover:bg-gray-900 transition-colors"
+                className="w-full rounded-xl bg-[#1a5eba] hover:bg-[#1649a0] px-4 py-3 text-sm font-semibold text-white disabled:opacity-30 transition-colors"
               >
                 {loading ? "Generating…" : "Generate link"}
               </button>
@@ -85,7 +85,7 @@ export default function Home() {
               </div>
               <button
                 onClick={copyLink}
-                className="w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white hover:bg-gray-900 transition-colors"
+                className="w-full rounded-xl bg-[#1a5eba] hover:bg-[#1649a0] px-4 py-3 text-sm font-semibold text-white transition-colors"
               >
                 {copied ? "Copied!" : "Copy link"}
               </button>
