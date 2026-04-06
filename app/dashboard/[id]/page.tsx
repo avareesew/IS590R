@@ -218,6 +218,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<JobData | null>(null);
   const [selected, setSelected] = useState<number>(0);
   const [saving, setSaving] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     fetch(`/api/jobs/${id}`)
@@ -277,6 +278,24 @@ export default function JobDetailPage() {
 
   const flow = job.result.learningFlow;
   const activity = flow[selected];
+
+  async function regenerateActivity(index: number) {
+    if (!job?.result) return;
+    setRegenerating(true);
+    const res = await fetch(`/api/jobs/${id}/regenerate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activityIndex: index }),
+    });
+    const data = await res.json();
+    if (data.activity) {
+      const updated = { ...job.result };
+      updated.learningFlow = [...updated.learningFlow];
+      updated.learningFlow[index] = data.activity;
+      setJob({ ...job, result: updated });
+    }
+    setRegenerating(false);
+  }
 
   async function setApprovalStatus(index: number, status: "approved" | "flagged" | "draft") {
     if (!job?.result) return;
@@ -401,6 +420,13 @@ export default function JobDetailPage() {
                 <p className="text-xs text-gray-400">Source: {activity.sourceSection}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => regenerateActivity(selected)}
+                  disabled={saving || regenerating}
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:border-gray-400 disabled:opacity-40 transition-colors"
+                >
+                  {regenerating ? "Regenerating…" : "Regenerate"}
+                </button>
                 <button
                   onClick={() => setApprovalStatus(selected, "flagged")}
                   disabled={saving}

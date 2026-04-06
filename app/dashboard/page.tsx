@@ -24,10 +24,23 @@ interface JobRow {
 export default function DashboardPage() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
 
+  const IN_PROGRESS = ["queued", "denoising", "understanding", "planning", "generating"];
+
   useEffect(() => {
-    fetch("/api/jobs")
-      .then((r) => r.json())
-      .then(setJobs);
+    function fetchJobs() {
+      fetch("/api/jobs")
+        .then((r) => r.json())
+        .then(setJobs);
+    }
+    fetchJobs();
+    const interval = setInterval(() => {
+      setJobs((prev) => {
+        const hasActive = prev.some((j) => IN_PROGRESS.includes(j.status));
+        if (hasActive) fetchJobs();
+        return prev;
+      });
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   async function deleteJob(id: string) {

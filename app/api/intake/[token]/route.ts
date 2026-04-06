@@ -38,6 +38,28 @@ export async function POST(
     return NextResponse.json({ error: "At least one PDF is required" }, { status: 400 });
   }
 
+  // Validate file types and size
+  for (const file of files) {
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      return NextResponse.json(
+        { error: `"${file.name}" is not a PDF. Please upload PDF files only.` },
+        { status: 400 }
+      );
+    }
+    if (file.size === 0) {
+      return NextResponse.json(
+        { error: `"${file.name}" appears to be empty. Please upload a valid PDF.` },
+        { status: 400 }
+      );
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: `"${file.name}" exceeds the 50MB limit.` },
+        { status: 400 }
+      );
+    }
+  }
+
   // Upload PDFs to Vercel Blob
   const blobUrls: string[] = [];
   for (const file of files) {
