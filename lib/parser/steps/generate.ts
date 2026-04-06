@@ -155,8 +155,14 @@ export async function generateActivity(
   const relevantSections = getRelevantSections(activity, allSections);
   const prompt = buildPrompt(activity, relevantSections);
 
+  // RolePlay needs Sonnet for complex persona + scorecard generation.
+  // All other types are simpler configs — Haiku is fast and sufficient.
+  const model = activity.activityType === "RolePlay"
+    ? "claude-sonnet-4-6"
+    : "claude-haiku-4-5-20251001";
+
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model,
     max_tokens: 4096,
     messages: [{ role: "user", content: prompt }],
   });
