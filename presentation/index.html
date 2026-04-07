@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Onboarding Parser — Replay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #1787ff;
+      --blue-dk: #1270e0;
+      --black:   #0a0a0a;
+      --gray:    #6b7280;
+      --light:   #f3f4f6;
+      --white:   #ffffff;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: 'Urbanist', sans-serif;
+      background: var(--black);
+      color: var(--black);
+      overflow: hidden;
+    }
+
+    /* ── Slide container ────────────────────────────────────────── */
+    .deck {
+      width: 100vw; height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px 60px;
+      background: var(--white);
+    }
+    .slide.active { display: flex; }
+    .slide.center { justify-content: center; }
+
+    /* ── Slide counter ──────────────────────────────────────────── */
+    #counter {
+      position: fixed;
+      bottom: 24px; right: 32px;
+      font-family: 'Urbanist', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: #9ca3af;
+      letter-spacing: 0.05em;
+      z-index: 100;
+    }
+
+    /* ── Nav dots ───────────────────────────────────────────────── */
+    #dots {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 100;
+    }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #d1d5db;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .dot.active { background: var(--blue); }
+
+    /* ── Typography helpers ─────────────────────────────────────── */
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 64px; font-weight: 800; line-height: 1.1; color: var(--black); }
+    h2 { font-size: 54px; font-weight: 700; line-height: 1.15; color: var(--black); }
+    h3 { font-size: 22px; font-weight: 600; color: var(--black); }
+    p  { font-size: 19px; font-weight: 400; line-height: 1.6; color: #374151; }
+    .muted { color: var(--gray); }
+    .blue  { color: var(--blue); }
+    .bold  { font-weight: 700; }
+
+    /* ── Layout helpers ─────────────────────────────────────────── */
+    .w-full  { width: 100%; }
+    .max-800 { max-width: 1100px; width: 100%; }
+    .max-900 { max-width: 1200px; width: 100%; }
+    .max-960 { max-width: 1280px; width: 100%; }
+    .col     { display: flex; flex-direction: column; }
+    .row     { display: flex; flex-direction: row; }
+    .gap-4   { gap: 4px; }
+    .gap-8   { gap: 8px; }
+    .gap-12  { gap: 12px; }
+    .gap-16  { gap: 16px; }
+    .gap-24  { gap: 24px; }
+    .gap-32  { gap: 32px; }
+    .gap-40  { gap: 40px; }
+    .gap-48  { gap: 48px; }
+    .mt-8    { margin-top: 8px; }
+    .mt-16   { margin-top: 16px; }
+    .mt-24   { margin-top: 24px; }
+    .mt-32   { margin-top: 32px; }
+    .center  { text-align: center; align-items: center; }
+    .flex-1  { flex: 1; }
+    .align-center { align-items: center; }
+
+    /* ── Cards / pills ──────────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border: 1.5px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 24px 28px;
+    }
+    .card-blue {
+      background: #eff6ff;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 16px;
+      padding: 24px 28px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #eff6ff;
+      color: var(--blue);
+    }
+    .pill-dark {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--black);
+      color: var(--white);
+    }
+
+    /* ── Divider ────────────────────────────────────────────────── */
+    .divider { width: 100%; height: 1px; background: #e5e7eb; }
+
+    /* ── Metric block ───────────────────────────────────────────── */
+    .metric-val {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--black);
+      line-height: 1;
+    }
+    .metric-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray);
+      margin-top: 4px;
+    }
+
+    /* ── Flow arrows ────────────────────────────────────────────── */
+    .arrow {
+      font-size: 20px;
+      color: #d1d5db;
+      align-self: center;
+    }
+
+    /* ── Step box ───────────────────────────────────────────────── */
+    .step-box {
+      flex: 1;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+    .step-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--black);
+    }
+    .step-desc {
+      font-size: 13px;
+      color: var(--gray);
+      line-height: 1.5;
+    }
+
+    /* ── Before/after table ─────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray);
+      padding: 0 0 12px 0;
+      text-align: left;
+    }
+    th:not(:first-child) { text-align: right; }
+    td {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--black);
+      padding: 10px 0;
+      border-top: 1px solid #f3f4f6;
+    }
+    td:not(:first-child) { text-align: right; }
+    td.before { color: var(--gray); }
+    td.after  { color: var(--blue); font-weight: 700; }
+
+    /* ── Code block ─────────────────────────────────────────────── */
+    .code-block {
+      background: #0a0a0a;
+      border-radius: 12px;
+      padding: 20px 24px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #e5e7eb;
+      overflow: hidden;
+    }
+    .code-key   { color: #93c5fd; }
+    .code-str   { color: #86efac; }
+    .code-label { color: #fca5a5; }
+    .code-muted { color: #6b7280; }
+
+    /* ── Slide-specific overrides ───────────────────────────────── */
+
+    /* Title slide */
+    #s1 { background: var(--black); }
+    #s1 h1 { color: var(--white); }
+    #s1 .label { color: var(--blue); }
+    #s1 p { color: #9ca3af; }
+    #s1 .divider { background: #1f2937; }
+    #dots .dot { background: #374151; }
+    #dots .dot.active { background: var(--blue); }
+
+    /* Demo slide */
+    #s8 { background: var(--blue); }
+    #s8 h1 { color: var(--white); font-size: 72px; }
+    #s8 p  { color: rgba(255,255,255,0.7); font-size: 20px; }
+    #s8 .flow-step {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 10px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    /* Summary slide */
+    #s14 { background: var(--black); }
+    #s14 h2 { color: var(--white); }
+    #s14 .label { color: var(--blue); }
+    #s14 p { color: #9ca3af; }
+    #s14 .metric-val { color: var(--white); }
+    #s14 .metric-label { color: #6b7280; }
+    #s14 .divider { background: #1f2937; }
+
+    /* Thank you slide */
+    #s15 { background: var(--black); }
+    #s15 h1 { color: var(--white); }
+    #s15 p { color: #9ca3af; }
+    #s15 .divider { background: #1f2937; }
+  </style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ── 1. Title ─────────────────────────────────────────────── -->
+  <section class="slide active center" id="s1">
+    <div class="col center gap-24 max-800">
+      <div class="col center gap-16">
+        <img src="https://www.replayhq.com/logo.webp" alt="Replay" style="height:32px; opacity:0.9" />
+        <h1>AI Onboarding Parser<br/>for Replay</h1>
+        <p>Replacing 5 hours of manual work with a 2-minute pipeline</p>
+      </div>
+      <div class="divider" style="width:64px"></div>
+      <p style="font-size:14px; color:var(--blue); font-weight:600">Ava Williams &nbsp;·&nbsp; IS590R &nbsp;·&nbsp; Winter 2026</p>
+    </div>
+  </section>
+
+  <!-- ── 2. What is Replay? ────────────────────────────────────── -->
+  <section class="slide" id="s2">
+    <div class="col gap-32 max-900">
+      <div class="col gap-8">
+        <span class="label">Context</span>
+        <h2>What is Replay?</h2>
+      </div>
+      <p style="font-size:19px; max-width:620px">An AI-powered <span class="bold">sales coaching platform</span> that trains sales reps through interactive roleplay, memorization drills, and rapid-fire objection practice — scored automatically by AI.</p>
+      <div class="row gap-16">
+        <div class="card flex-1">
+          <div class="step-num" style="margin-bottom:8px">How reps train</div>
+          <p style="font-size:14px; color:#374151">Reps practice real conversations with an AI customer persona. Every response is scored on a custom rubric the company defines.</p>
+        </div>
+        <div class="card flex-1">
+          <div class="step-num" style="margin-bottom:8px">Chase's role</div>
+          <p style="font-size:14px; color:#374151">Founder &amp; CEO. Onboards new clients by manually reading their training docs and building all activity configs by hand.</p>
+        </div>
+        <div class="card flex-1">
+          <div class="step-num" style="margin-bottom:8px">The constraint</div>
+          <p style="font-size:14px; color:#374151">Every new client requires hours of manual extraction work before a single rep can start training. This caps growth.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. The Problem ────────────────────────────────────────── -->
+  <section class="slide" id="s3">
+    <div class="col gap-32 max-900">
+      <div class="col gap-8">
+        <span class="label">The Problem</span>
+        <h2>Onboarding is a manual bottleneck</h2>
+      </div>
+      <div class="row gap-16 align-center">
+        <!-- Phase 1 -->
+        <div class="card flex-1" style="border-color:#fca5a5; background:#fff7f7">
+          <div class="step-num" style="color:#ef4444; margin-bottom:6px">Phase 1</div>
+          <div class="step-title">Discovery Interview</div>
+          <p style="font-size:13px; margin-top:6px; color:#6b7280">Chase calls the client to learn what they want to train on — topics, tone, product nuances</p>
+          <div style="font-size:22px; font-weight:800; color:#ef4444; margin-top:12px">~1 hr</div>
+        </div>
+        <div class="arrow">→</div>
+        <!-- Phase 2 -->
+        <div class="card flex-1" style="border-color:#fca5a5; background:#fff7f7; border-width:2.5px">
+          <div class="step-num" style="color:#ef4444; margin-bottom:6px">Phase 2 ← bottleneck</div>
+          <div class="step-title">Manual PDF Extraction</div>
+          <p style="font-size:13px; margin-top:6px; color:#6b7280">Read training docs, extract scripts, objections, personas, build activity configs by hand</p>
+          <div style="font-size:22px; font-weight:800; color:#ef4444; margin-top:12px">4–5 hrs</div>
+        </div>
+        <div class="arrow">→</div>
+        <!-- Phase 3 -->
+        <div class="card flex-1">
+          <div class="step-num" style="margin-bottom:6px">Phase 3</div>
+          <div class="step-title">Technical Build</div>
+          <p style="font-size:13px; margin-top:6px; color:#6b7280">Import configs into Replay, configure activity settings, QA</p>
+          <div style="font-size:22px; font-weight:800; color:var(--black); margin-top:12px">20–30 min</div>
+        </div>
+      </div>
+      <div class="row gap-32" style="padding:20px 0 0 0; border-top:1px solid #f3f4f6">
+        <div>
+          <div class="metric-val">$500</div>
+          <div class="metric-label">cost per onboarding</div>
+        </div>
+        <div>
+          <div class="metric-val">~60</div>
+          <div class="metric-label">deals/year capacity</div>
+        </div>
+        <div>
+          <div class="metric-val">1,250 hrs</div>
+          <div class="metric-label">founder time at 250 deals/yr</div>
+        </div>
+        <div>
+          <div class="metric-val">$125k</div>
+          <div class="metric-label">annual overhead at scale</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. The Opportunity ────────────────────────────────────── -->
+  <section class="slide" id="s4">
+    <div class="col gap-32 max-800">
+      <div class="col gap-8">
+        <span class="label">The Opportunity</span>
+        <h2>What becomes possible if extraction is automated?</h2>
+      </div>
+      <div class="row gap-16">
+        <div class="card-blue flex-1 col gap-8">
+          <div class="step-num">Cycle time</div>
+          <div style="font-size:28px; font-weight:800; color:var(--blue)">5 hrs → 1.5 hrs</div>
+          <p style="font-size:14px">Interview replaced by a self-serve intake link. Extraction replaced by a 2-minute pipeline.</p>
+        </div>
+        <div class="card-blue flex-1 col gap-8">
+          <div class="step-num">Cost per client</div>
+          <div style="font-size:28px; font-weight:800; color:var(--blue)">$500 → $150</div>
+          <p style="font-size:14px">~$1 in API costs + review time. The manual extraction cost disappears entirely.</p>
+        </div>
+        <div class="card-blue flex-1 col gap-8">
+          <div class="step-num">Deal capacity</div>
+          <div style="font-size:28px; font-weight:800; color:var(--blue)">60 → 250+/yr</div>
+          <p style="font-size:14px">SMB segment ($5k–$10k ACV) becomes profitable. Growth is no longer founder-limited.</p>
+        </div>
+      </div>
+      <div class="card" style="background:#f9fafb">
+        <p style="font-size:15px"><span class="bold">Annual savings at 250 deals:</span> <span class="blue bold">~$87,500</span> in founder time — equivalent to hiring a full-time onboarding specialist, without the headcount.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. The Solution ───────────────────────────────────────── -->
+  <!-- ── 5→6 merged: Systems Diagram ──────────────────────────── -->
+  <section class="slide" id="s6">
+    <div class="col gap-24 max-960" style="width:100%">
+      <div class="col gap-8">
+        <span class="label">Architecture</span>
+        <h2>How it fits Chase's current process</h2>
+      </div>
+
+      <!-- Sequential horizontal flow -->
+      <div style="display:flex; align-items:stretch; gap:0; width:100%">
+
+        <!-- Step 1 -->
+        <div style="flex:1; display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); height:18px">Founder</div>
+          <div style="background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:12px; padding:14px 16px; font-size:13px; font-weight:600; flex:1">
+            Create client
+            <div style="font-size:12px; font-weight:400; color:var(--gray); margin-top:4px">Generate unique intake link → send to client</div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; padding:0 8px; margin-top:24px; color:#d1d5db; font-size:18px">→</div>
+
+        <!-- Step 2 -->
+        <div style="flex:1.1; display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); height:18px">Client</div>
+          <div style="background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:12px; padding:14px 16px; font-size:13px; font-weight:600; flex:1; display:flex; flex-direction:column">
+            Opens intake link
+            <div style="font-size:12px; font-weight:400; color:var(--blue); margin-top:4px">Selects training topics · adds notes · uploads PDFs</div>
+            <div style="margin-top:auto; padding-top:10px"><span class="pill" style="font-size:11px; border:1.5px solid var(--blue)">Replaces interview</span></div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; padding:0 8px; margin-top:24px; color:#d1d5db; font-size:18px">→</div>
+
+        <!-- Step 3 — AI Pipeline -->
+        <div style="flex:1.6; display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); height:18px">System — AI Pipeline</div>
+          <div style="background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:12px; padding:14px 16px; flex:1; display:flex; flex-direction:column">
+            <div style="display:flex; flex-direction:column; gap:2px">
+              <div>
+                <span style="background:white; border:1px solid #bfdbfe; border-radius:8px; padding:3px 10px; font-size:12px; font-weight:600; color:var(--blue)">① Denoise</span>
+              </div>
+              <div style="font-size:11px; color:#bfdbfe; padding-left:10px; line-height:1">↓</div>
+              <div>
+                <span style="background:white; border:1px solid #bfdbfe; border-radius:8px; padding:3px 10px; font-size:12px; font-weight:600; color:var(--blue)">② Understand</span>
+              </div>
+              <div style="font-size:11px; color:#bfdbfe; padding-left:10px; line-height:1">↓</div>
+              <div>
+                <span style="background:white; border:1px solid #bfdbfe; border-radius:8px; padding:3px 10px; font-size:12px; font-weight:600; color:var(--blue)">③ Plan</span>
+              </div>
+              <div style="font-size:11px; color:#bfdbfe; padding-left:10px; line-height:1">↓</div>
+              <div>
+                <span style="background:white; border:1px solid #bfdbfe; border-radius:8px; padding:3px 10px; font-size:12px; font-weight:600; color:var(--blue)">④ Generate</span>
+              </div>
+            </div>
+            <div style="font-size:12px; color:var(--blue); opacity:0.7; margin-top:8px">2–3 min · Haiku + Sonnet · Neon DB · Vercel Blob</div>
+            <div style="margin-top:auto; padding-top:10px"><span class="pill" style="font-size:11px; border:1.5px solid var(--blue)">Replaces extraction</span></div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; padding:0 8px; margin-top:24px; color:#d1d5db; font-size:18px">→</div>
+
+        <!-- Step 4 -->
+        <div style="flex:1.1; display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--gray); height:18px">Founder</div>
+          <div style="background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:12px; padding:14px 16px; font-size:13px; font-weight:600; flex:1">
+            HITL Review
+            <div style="font-size:12px; font-weight:400; color:var(--gray); margin-top:4px">Inspect · edit · approve activities · export JSON</div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; padding:0 8px; margin-top:24px; color:#d1d5db; font-size:18px">→</div>
+
+        <!-- Step 5 -->
+        <div style="flex:1; display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#16a34a; height:18px">Replay</div>
+          <div style="background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:12px; padding:14px 16px; font-size:13px; font-weight:600; flex:1">
+            Training live
+            <div style="font-size:12px; font-weight:400; color:#16a34a; margin-top:4px">Import JSON → reps start practicing</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Legend -->
+      <div style="display:flex; gap:24px; padding-top:4px">
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray)">
+          <div style="width:12px; height:12px; border-radius:3px; background:#bfdbfe"></div>
+          New automated step
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray)">
+          <div style="width:12px; height:12px; border-radius:3px; background:#e5e7eb"></div>
+          Unchanged / manual
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray)">
+          <div style="width:12px; height:12px; border-radius:3px; background:#bbf7d0"></div>
+          End state
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. Pipeline Architecture ──────────────────────────────── -->
+  <section class="slide" id="s7">
+    <div class="col gap-32 max-960">
+      <div class="col gap-8">
+        <span class="label">Pipeline Deep Dive</span>
+        <h2>4-step AI pipeline</h2>
+      </div>
+      <div class="row gap-12">
+        <div class="step-box" style="border-color:#e0e7ff; background:#f5f3ff">
+          <div class="step-num" style="color:#7c3aed">Step 1</div>
+          <div class="step-title">Signal Denoising</div>
+          <div class="step-desc">Strips noise before the AI reasons over anything — schedules, commission tables, dress code, motivational filler. Keeps scripts, objections, value props, personas.</div>
+          <div style="margin-top:10px; font-size:12px; color:#7c3aed; font-weight:600">~30% noise removed avg</div>
+        </div>
+        <div class="step-box" style="border-color:#fde68a; background:#fffbeb">
+          <div class="step-num" style="color:#d97706">Step 2</div>
+          <div class="step-title">Document Understanding</div>
+          <div class="step-desc">Tags every section: <code style="font-size:11px; background:#fef3c7; padding:1px 4px; border-radius:4px">script</code> <code style="font-size:11px; background:#fef3c7; padding:1px 4px; border-radius:4px">objection-list</code> <code style="font-size:11px; background:#fef3c7; padding:1px 4px; border-radius:4px">value-prop</code> <code style="font-size:11px; background:#fef3c7; padding:1px 4px; border-radius:4px">tactical-advice</code> and more. Training brief used as a prioritization directive.</div>
+          <div style="margin-top:10px; font-size:12px; color:#d97706; font-weight:600">Typed section map output</div>
+        </div>
+        <div class="step-box" style="border-color:#bbf7d0; background:#f0fdf4">
+          <div class="step-num" style="color:#16a34a">Step 3</div>
+          <div class="step-title">Activity Planning</div>
+          <div class="step-desc">Decides which activity types to build and in what sequence. Rules: Lessons first → Memorization → RolePlays → RapidFire drills. Brief topics determine priority.</div>
+          <div style="margin-top:10px; font-size:12px; color:#16a34a; font-weight:600">Ordered activity plan</div>
+        </div>
+        <div class="step-box" style="border-color:#bfdbfe; background:#eff6ff">
+          <div class="step-num" style="color:var(--blue)">Step 4</div>
+          <div class="step-title">Content Generation</div>
+          <div class="step-desc">Generates a fully-typed config per activity in parallel. RolePlay uses Sonnet (complex persona + scorecard). All other types use Haiku for cost efficiency.</div>
+          <div style="margin-top:10px; font-size:12px; color:var(--blue); font-weight:600">5 activity types · per-activity progress</div>
+        </div>
+      </div>
+      <div class="row gap-32" style="padding-top:8px; border-top:1px solid #f3f4f6">
+        <p style="font-size:14px; color:var(--gray)">Input: PDF text layer + Claude vision pass (skipped for text-dense docs) → merged canonical document</p>
+        <p style="font-size:14px; color:var(--gray)">Output: <code style="font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:4px">ParsedTrainingConfig</code> with ordered <code style="font-size:12px; background:#f3f4f6; padding:2px 6px; border-radius:4px">learningFlow[]</code></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8. Demo Cue ───────────────────────────────────────────── -->
+  <section class="slide center" id="s8">
+    <div class="col center gap-32 max-800">
+      <h1><a href="http://localhost:3000/dashboard" target="_blank" style="color:inherit; text-decoration:none;">Live Demo</a></h1>
+    </div>
+  </section>
+
+  <!-- ── 9. Results / Output Quality ──────────────────────────── -->
+  <section class="slide" id="s9">
+    <div class="col gap-24 max-960">
+      <div class="col gap-8">
+        <span class="label">Validation · RayRay Solar · 4-page training doc</span>
+        <h2>What the output actually looks like</h2>
+      </div>
+      <div class="row gap-16" style="align-items:flex-start">
+        <!-- Left: stats + memorization -->
+        <div class="col gap-16" style="flex:1">
+          <div class="card col gap-12">
+            <div class="step-num">Activities generated</div>
+            <div class="row gap-8" style="flex-wrap:wrap">
+              <span style="background:#eff6ff; color:var(--blue); border-radius:8px; padding:6px 14px; font-size:13px; font-weight:700">1 Lesson</span>
+              <span style="background:#f5f3ff; color:#7c3aed; border-radius:8px; padding:6px 14px; font-size:13px; font-weight:700">2 Memorization</span>
+              <span style="background:#fffbeb; color:#d97706; border-radius:8px; padding:6px 14px; font-size:13px; font-weight:700">1 RolePlay</span>
+              <span style="background:#fff7ed; color:#ea580c; border-radius:8px; padding:6px 14px; font-size:13px; font-weight:700">1 RapidFire</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="step-num" style="margin-bottom:8px">Memorization — exact script lines</div>
+            <p style="font-size:13px; color:#374151; font-style:italic">"Hello, I'm looking for the owner of the solar array on the roof. I'm out giving free 'Thermal-Leak' evaluations. You don't even need to step outside; just 2 minutes of your time..."</p>
+            <p style="font-size:12px; color:var(--gray); margin-top:8px">Pulled verbatim from source doc · 3 close variants captured</p>
+          </div>
+        </div>
+        <!-- Right: RolePlay excerpt -->
+        <div class="col gap-16" style="flex:1.2">
+          <div class="card">
+            <div class="step-num" style="margin-bottom:10px">RolePlay — AI persona + scorecard</div>
+            <div class="code-block" style="font-size:11px">
+              <span class="code-label">"customerPersona"</span>: {<br/>
+              &nbsp;&nbsp;<span class="code-key">"demeanor"</span>: <span class="code-str">"Busy homeowner, mildly skeptical..."</span><br/>
+              },<br/>
+              <span class="code-label">"sections"</span>: [{<br/>
+              &nbsp;&nbsp;<span class="code-key">"title"</span>: <span class="code-str">"Opening &amp; Identity"</span>,<br/>
+              &nbsp;&nbsp;<span class="code-key">"criteria"</span>: [{<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"title"</span>: <span class="code-str">"Identified Purpose Immediately"</span>,<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"criterionType"</span>: <span class="code-str">"YesNoQuestion"</span><br/>
+              &nbsp;&nbsp;}, {<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"title"</span>: <span class="code-str">"Confidence and Clarity of Delivery"</span>,<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"criterionType"</span>: <span class="code-str">"RangeQuestion"</span><br/>
+              &nbsp;&nbsp;}]<br/>
+              }]
+            </div>
+            <p style="font-size:12px; color:var(--gray); margin-top:10px">≥90% usable draft quality before any editing</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 10. Time Savings ──────────────────────────────────────── -->
+  <section class="slide" id="s10">
+    <div class="col gap-32 max-800">
+      <div class="col gap-8">
+        <span class="label">Impact</span>
+        <h2>Time savings</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Phase</th>
+            <th>Before</th>
+            <th>After</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Client discovery</td>
+            <td class="before">~1 hour interview</td>
+            <td class="after">Self-serve intake link</td>
+            <td class="after">−60 min</td>
+          </tr>
+          <tr>
+            <td>PDF extraction &amp; structuring</td>
+            <td class="before">4–5 hours manual</td>
+            <td class="after">2–3 min pipeline</td>
+            <td class="after">−4.5 hrs</td>
+          </tr>
+          <tr>
+            <td>HITL review &amp; approval</td>
+            <td class="muted">—</td>
+            <td>~30 min</td>
+            <td class="muted">new step</td>
+          </tr>
+          <tr>
+            <td>Technical build (unchanged)</td>
+            <td>20–30 min</td>
+            <td>20–30 min</td>
+            <td class="muted">—</td>
+          </tr>
+          <tr style="border-top: 2px solid var(--black)">
+            <td class="bold">Total</td>
+            <td class="before bold">~5 hours</td>
+            <td class="after bold">~1.5 hours</td>
+            <td class="after bold">−70%</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="card" style="background:#f9fafb; display:flex; gap:16px; align-items:center">
+        <div style="width:4px; height:48px; background:var(--blue); border-radius:99px; flex-shrink:0"></div>
+        <p style="font-size:15px">The founder's active involvement drops from 5+ hours of focused extraction work to a 30-minute review.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 11. Cost Analysis ─────────────────────────────────────── -->
+  <section class="slide" id="s11">
+    <div class="col gap-28 max-900">
+      <div class="col gap-8">
+        <span class="label">Cost Analysis</span>
+        <h2>What does it actually cost to run?</h2>
+      </div>
+      <div class="row gap-16">
+        <!-- API costs -->
+        <div class="col gap-12 flex-1" style="margin-top:16px">
+          <div class="step-num">API cost per onboarding <span style="font-weight:400; color:var(--gray)">· 30-page baseline</span></div>
+          <table style="font-size:13px">
+            <tbody>
+              <tr><td>Denoise</td><td class="muted" style="padding:0 24px 0 12px">Haiku</td><td style="text-align:right">~$0.02</td></tr>
+              <tr><td>Understand</td><td class="muted" style="padding:0 24px 0 12px">Haiku</td><td style="text-align:right">~$0.03</td></tr>
+              <tr><td>Plan</td><td class="muted" style="padding:0 24px 0 12px">Haiku</td><td style="text-align:right">~$0.01</td></tr>
+              <tr><td>Generate (×8 activities)</td><td class="muted" style="padding:0 24px 0 12px">Haiku + Sonnet</td><td style="text-align:right">~$0.46</td></tr>
+              <tr style="border-top:2px solid var(--black)"><td class="bold">Total / doc</td><td></td><td style="text-align:right" class="bold">~$0.52</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:13px; color:var(--gray); line-height:1.5">Average onboarding = 2 docs → <span class="bold" style="color:var(--black)">~$1.04</span></p>
+          <p style="font-size:12px; color:var(--gray); line-height:1.5">Cost scales with doc volume — a 4-page packet runs cheaper, a 60-page manual runs higher.</p>
+        </div>
+        <!-- Scale costs -->
+        <div class="col gap-12 flex-1" style="margin-top:16px">
+          <div class="step-num">At scale</div>
+          <div class="card-blue col gap-8">
+            <div class="row" style="justify-content:space-between">
+              <span style="font-size:14px; color:var(--gray)">60 deals/year</span>
+              <span style="font-size:14px; font-weight:700; color:var(--black)">~$62/yr in API</span>
+            </div>
+            <div class="row" style="justify-content:space-between">
+              <span style="font-size:14px; color:var(--gray)">250 deals/year</span>
+              <span style="font-size:14px; font-weight:700; color:var(--black)">~$260/yr in API</span>
+            </div>
+            <div class="divider" style="margin:4px 0"></div>
+            <div class="row" style="justify-content:space-between">
+              <span style="font-size:14px; color:var(--gray)">Hosting (local)</span>
+              <span style="font-size:14px; font-weight:700; color:var(--black)">$0</span>
+            </div>
+            <div class="row" style="justify-content:space-between">
+              <span style="font-size:14px; color:var(--gray)">Hosting (Vercel Pro)</span>
+              <span style="font-size:14px; font-weight:700; color:var(--black)">~$240/yr</span>
+            </div>
+          </div>
+        </div>
+        <!-- ROI -->
+        <div class="col gap-12 flex-1" style="margin-top:16px">
+          <div class="step-num">ROI</div>
+          <div class="card col gap-12">
+            <div>
+              <div class="metric-val" style="font-size:36px">$87.5k</div>
+              <div class="metric-label">annual founder time saved at 250 deals</div>
+            </div>
+            <div class="divider"></div>
+            <div>
+              <div class="metric-val" style="font-size:36px; color:var(--blue)">~$500/yr</div>
+              <div class="metric-label">total tool cost (API + hosting) at 250 deals</div>
+            </div>
+            <p style="font-size:13px; color:var(--gray); margin-top:4px">175:1 return on tool cost</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 12. Security ──────────────────────────────────────────── -->
+  <section class="slide" id="s12">
+    <div class="col gap-32 max-800">
+      <div class="col gap-8">
+        <span class="label">Security &amp; Privacy</span>
+        <h2>What leaves the machine, and how it's protected</h2>
+      </div>
+      <div class="row gap-16">
+        <!-- What's sent -->
+        <div class="card flex-1 col gap-12" style="border-color:#fca5a5">
+          <div class="step-num" style="color:#ef4444">What's sent to the LLM</div>
+          <p style="font-size:14px">Client training PDFs — containing sales scripts, objection responses, product knowledge, and customer personas.</p>
+          <p style="font-size:13px; color:var(--gray)">This is the core data risk. Client data does leave the machine and must be disclosed.</p>
+        </div>
+        <!-- Mitigations -->
+        <div class="col gap-12 flex-1">
+          <div class="step-num">Mitigations</div>
+          <div class="col gap-8">
+            <div style="display:flex; gap:10px; align-items:flex-start">
+              <div style="width:20px; height:20px; border-radius:6px; background:#eff6ff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--blue)">1</div>
+              <p style="font-size:14px"><span class="bold">Signal Denoising</span> strips non-essential content (schedules, financial tables) before any API call — reduces data surface area</p>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start">
+              <div style="width:20px; height:20px; border-radius:6px; background:#eff6ff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--blue)">2</div>
+              <p style="font-size:14px"><span class="bold">Anthropic API is SOC 2 Type II compliant</span> — enterprise data handling standards, not consumer Claude</p>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start">
+              <div style="width:20px; height:20px; border-radius:6px; background:#eff6ff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--blue)">3</div>
+              <p style="font-size:14px"><span class="bold">Locally hosted</span> — no PDFs stored on third-party servers; Vercel Blob only used if deployed to cloud</p>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start">
+              <div style="width:20px; height:20px; border-radius:6px; background:#eff6ff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--blue)">4</div>
+              <p style="font-size:14px"><span class="bold">HITL review</span> catches hallucinations before anything reaches a rep — no silent automation</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 13. Next Steps ────────────────────────────────────────── -->
+  <section class="slide" id="s13">
+    <div class="col gap-32 max-900">
+      <div class="col gap-8">
+        <span class="label">What's next</span>
+        <h2>Two ideas to take this further</h2>
+      </div>
+      <div class="row gap-32" style="align-items:stretch">
+        <!-- Next step 1 -->
+        <div class="card-blue flex-1 col gap-16" style="height:100%">
+          <div class="row gap-12 align-center">
+            <div style="width:40px; height:40px; background:var(--blue); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10h14M10 3v14" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <h3 style="font-size:18px">Direct API Integration</h3>
+          </div>
+          <p style="font-size:14px; color:#374151; flex:1">Instead of downloading a JSON file and manually importing it, the approved config is pushed <span class="bold">directly into Chase's Replay workspace via API</span> on export. Eliminates the last manual step entirely.</p>
+          <div class="col gap-6" style="padding-top:12px; border-top:1px solid #bfdbfe; margin-top:auto">
+            <p style="font-size:13px; color:var(--gray)"><span class="bold" style="color:var(--black)">Current:</span> Export JSON → manually import into Replay builder</p>
+            <p style="font-size:13px; color:var(--blue)"><span class="bold">Future:</span> Click "Approve All" → activities live in Replay instantly</p>
+          </div>
+        </div>
+        <!-- Next step 2 -->
+        <div class="card-blue flex-1 col gap-16" style="height:100%">
+          <div class="row gap-12 align-center">
+            <div style="width:40px; height:40px; background:var(--blue); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="4" stroke="white" stroke-width="2"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <h3 style="font-size:18px">AI Interview Agent</h3>
+          </div>
+          <p style="font-size:14px; color:#374151; flex:1">Instead of a static intake form, clients receive a link to a <span class="bold">conversational AI agent</span> that interviews them about their sales process — tone, common objections, product nuances — then they upload their PDFs.</p>
+          <div class="col gap-6" style="padding-top:12px; border-top:1px solid #bfdbfe; margin-top:auto">
+            <p style="font-size:13px; color:var(--gray)"><span class="bold" style="color:var(--black)">Current:</span> Static form with topic checkboxes + free-text notes</p>
+            <p style="font-size:13px; color:var(--blue)"><span class="bold">Future:</span> 10-min AI conversation → richer training brief → better pipeline output</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 14. Summary ───────────────────────────────────────────── -->
+  <section class="slide center" id="s14">
+    <div class="col center gap-32 max-800">
+      <div class="col center gap-16">
+        <span class="label">Summary</span>
+        <h2>A working AI pipeline that turns<br/>any sales training PDF into a<br/>Replay-ready learning flow</h2>
+      </div>
+      <div class="divider" style="width:64px; background:#1f2937"></div>
+      <div class="row gap-40">
+        <div class="col center">
+          <div class="metric-val">5 hrs</div>
+          <div style="font-size:20px; font-weight:800; color:var(--blue); margin:2px 0">→ 1.5 hrs</div>
+          <div class="metric-label">cycle time</div>
+        </div>
+        <div class="col center">
+          <div class="metric-val">$500</div>
+          <div style="font-size:20px; font-weight:800; color:var(--blue); margin:2px 0">→ $150</div>
+          <div class="metric-label">cost per client</div>
+        </div>
+        <div class="col center">
+          <div class="metric-val">60</div>
+          <div style="font-size:20px; font-weight:800; color:var(--blue); margin:2px 0">→ 250+</div>
+          <div class="metric-label">deals/year</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── 15. Thank You ─────────────────────────────────────────── -->
+  <section class="slide center" id="s15">
+    <div class="col center gap-24 max-800">
+      <img src="https://www.replayhq.com/logo.webp" alt="Replay" style="height:36px; opacity:0.9" />
+      <div class="col center gap-12">
+        <h1 style="font-size:56px">Thank you</h1>
+      </div>
+      <div class="divider" style="width:64px; background:#1f2937"></div>
+      <p style="font-size:14px; color:var(--blue); font-weight:600">Ava Williams &nbsp;·&nbsp; IS590R &nbsp;·&nbsp; Winter 2026</p>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- Counter + dots -->
+<div id="counter">1 / 14</div>
+<div id="dots"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  const dotsEl  = document.getElementById('dots');
+  const total   = slides.length;
+  let current   = 0;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    dotsEl.children[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, n));
+    slides[current].classList.add('active');
+    dotsEl.children[current].classList.add('active');
+    counter.textContent = (current + 1) + ' / ' + total;
+
+    // Title + summary slides: dark background → white dots
+    const dark = ['s1', 's14', 's15'];
+    const isDark = dark.includes(slides[current].id);
+    dotsEl.querySelectorAll('.dot').forEach(d => {
+      d.style.background = d.classList.contains('active')
+        ? '#1787ff'
+        : (isDark ? '#374151' : '#d1d5db');
+    });
+    counter.style.color = isDark ? '#6b7280' : '#9ca3af';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') goTo(current + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    goTo(current - 1);
+  });
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('#dots')) return;
+    goTo(current + 1);
+  });
+
+  // Init dot colors
+  goTo(0);
+</script>
+</body>
+</html>
