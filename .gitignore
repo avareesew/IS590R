@@ -41,6 +41,9 @@ fixtures/training-docs/**
 # vercel
 .vercel
 
+# smoke test output
+scripts/smoke-pipeline-output.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

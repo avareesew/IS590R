@@ -161,13 +161,6 @@ export interface ParsedTrainingConfig {
     confidence: number;
     trainingBrief: TrainingBrief;
   };
-  persona: {
-    name: string;
-    role: string;
-    tone: string[];
-    communicationStyle: string;
-    industryContext: string;
-  };
   learningFlow: LearningFlowItem[];
 }
 

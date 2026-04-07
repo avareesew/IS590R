@@ -53,7 +53,9 @@ export async function runPipeline(job: ParseJob): Promise<void> {
 
     // ── Step 2: Document Understanding ───────────────────────────────────────
     await updateStatus("understanding", "Document Understanding", 35);
-    const sourceDocument = canonicalDocs.map((d) => d.filename).join(", ");
+    const sourceDocument = canonicalDocs
+      .map((d) => decodeURIComponent(d.filename.replace(/^\d+-/, "")))
+      .join(", ");
     const sections = await understand(
       filteredText,
       job.trainingBrief,
@@ -68,8 +70,20 @@ export async function runPipeline(job: ParseJob): Promise<void> {
     console.log(`[pipeline:${job.id}] plan: ${activities.length} activities planned`);
 
     // ── Step 4: Content Generation ────────────────────────────────────────────
-    await updateStatus("generating", "Content Generation", 70);
-    const learningFlow = await generateAll(activities, sections, client);
+    await updateStatus("generating", "Starting content generation…", 70);
+    const learningFlow = await generateAll(
+      activities,
+      sections,
+      client,
+      async (completed, total, latest) => {
+        const percent = Math.round(70 + (completed / total) * 28);
+        await updateStatus(
+          "generating",
+          `Generating ${completed} of ${total}: ${latest.activityType} — ${latest.title}`,
+          percent
+        );
+      }
+    );
     console.log(`[pipeline:${job.id}] generate: ${learningFlow.length} activities generated`);
 
     // ── Confidence heuristic ──────────────────────────────────────────────────
@@ -88,13 +102,6 @@ export async function runPipeline(job: ParseJob): Promise<void> {
         schemaVersion: "1.0",
         confidence,
         trainingBrief: job.trainingBrief,
-      },
-      persona: {
-        name: "",
-        role: "",
-        tone: [],
-        communicationStyle: "",
-        industryContext: "",
       },
       learningFlow,
     };

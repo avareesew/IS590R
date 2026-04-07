@@ -189,10 +189,19 @@ export async function generateActivity(
 export async function generateAll(
   activities: PlannedActivity[],
   sections: TaggedSection[],
-  client: Anthropic
+  client: Anthropic,
+  onProgress?: (completed: number, total: number, latest: LearningFlowItem) => void
 ): Promise<LearningFlowItem[]> {
+  const total = activities.length;
+  let completed = 0;
+
   const results = await Promise.all(
-    activities.map((activity) => generateActivity(activity, sections, client))
+    activities.map(async (activity) => {
+      const item = await generateActivity(activity, sections, client);
+      completed++;
+      onProgress?.(completed, total, item);
+      return item;
+    })
   );
   // Re-sort by sequencePosition since parallel calls may resolve out of order
   return results.sort((a, b) => a.sequencePosition - b.sequencePosition);
