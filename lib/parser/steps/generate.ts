@@ -139,12 +139,26 @@ Rules:
 - For Lesson: keyTerms should come from industry-context and value-prop sections. Remember a Lesson is text, images, and video only — no interactive elements`;
 }
 
-function parseJson(raw: string): ActivityConfig {
-  const cleaned = raw
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "")
-    .trim();
-  return JSON.parse(cleaned);
+function extractJson(raw: string): string {
+  const start = raw.indexOf("{");
+  if (start === -1) return raw;
+  let depth = 0;
+  for (let i = start; i < raw.length; i++) {
+    if (raw[i] === "{") depth++;
+    else if (raw[i] === "}") {
+      depth--;
+      if (depth === 0) return raw.slice(start, i + 1);
+    }
+  }
+  return raw.slice(start);
+}
+
+function parseJson(raw: string, activityType: string, title: string): ActivityConfig {
+  const extracted = extractJson(raw.trim());
+  if (!extracted.startsWith("{") && !extracted.startsWith("[")) {
+    throw new Error(`[generate:${activityType}] "${title}" — Claude returned non-JSON: ${extracted.slice(0, 200)}`);
+  }
+  return JSON.parse(extracted);
 }
 
 export async function generateActivity(
@@ -173,7 +187,7 @@ export async function generateActivity(
     .join("")
     .trim();
 
-  const config = parseJson(raw) as ActivityConfig;
+  const config = parseJson(raw, activity.activityType, activity.title) as ActivityConfig;
 
   return {
     activityType: activity.activityType,

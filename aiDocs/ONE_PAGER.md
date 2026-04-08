@@ -1,4 +1,5 @@
-# Replay — AI Onboarding Parser Agent  
+# Replay — AI Onboarding Parser Agent
+
 **One-page summary** · [Full PRD →](./PRD.md) · [Proposal & ROI →](./project_proposal.md)
 
 ---
@@ -17,14 +18,16 @@ Onboarding is **founder-limited**: a first interview to learn what the client wa
 
 ## Solution (in one flow)
 
-| Step | Who | What happens |
-| --- | --- | --- |
-| **Link** | Founder | Creates new client in dashboard → copies unique intake link → sends to client |
-| **Intake** | Client | Opens link → selects training topics → adds doc notes → drags and drops PDFs → submits |
-| **Ingest** | System | PDFs pulled from Vercel Blob; text layer + **vision per page** → **merged canonical doc** |
-| **Pipeline** | System | **Denoise** → **tag sections** → **plan activities** → **generate configs** (training brief guides Steps 2 & 3) |
-| **Review** | Founder | Edits, flags, or regenerates single activities |
-| **Export** | Founder | **Approved JSON** downloaded for import into Replay *(exact import path TBD with stakeholder)* |
+
+| Step         | Who     | What happens                                                                                                    |
+| ------------ | ------- | --------------------------------------------------------------------------------------------------------------- |
+| **Link**     | Founder | Creates new client in dashboard → copies unique intake link → sends to client                                   |
+| **Intake**   | Client  | Opens link → selects training topics → adds doc notes → drags and drops PDFs → submits                          |
+| **Ingest**   | System  | PDFs pulled from Vercel Blob; text layer + **vision per page** → **merged canonical doc**                       |
+| **Pipeline** | System  | **Denoise** → **tag sections** → **plan activities** → **generate configs** (training brief guides Steps 2 & 3) |
+| **Review**   | Founder | Edits, flags, or regenerates single activities                                                                  |
+| **Export**   | Founder | **Approved JSON** downloaded for import into Replay *(exact import path TBD with stakeholder)*                  |
+
 
 ---
 
@@ -38,12 +41,14 @@ Onboarding is **founder-limited**: a first interview to learn what the client wa
 
 ## Targets (product)
 
-| Metric | Aim |
-| --- | --- |
-| Draft after upload | **&lt; ~30 s** typical doc |
-| Draft quality (pre-review) | **~90%** usable *(founder-judged; needs golden PDF checklist)* |
-| API cost | **Text baseline ~$1** / onboarding; **+ vision per page** — re-estimate after MVP benchmark *(proposal §5 + PRD)* |
-| Infra cost (MVP) | **$0** (local) |
+
+| Metric                     | Aim                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Draft after upload         | **< ~30 s** typical doc                                                                                           |
+| Draft quality (pre-review) | **~90%** usable *(founder-judged; needs golden PDF checklist)*                                                    |
+| API cost                   | **Text baseline ~$1** / onboarding; **+ vision per page** — re-estimate after MVP benchmark *(proposal §5 + PRD)* |
+| Infra cost (MVP)           | **$0** (local)                                                                                                    |
+
 
 ---
 
@@ -61,10 +66,12 @@ Library-only OCR as the **primary** path (vision LLM is MVP) · multi-tenant aut
 
 ## Docs in this repo
 
-| Doc | Use when |
-| --- | --- |
-| **This page** | 2-minute orientation |
-| **[PRD](./PRD.md)** | Requirements, schema, API, risks, open questions |
+
+| Doc                                   | Use when                                                           |
+| ------------------------------------- | ------------------------------------------------------------------ |
+| **This page**                         | 2-minute orientation                                               |
+| **[PRD](./PRD.md)**                   | Requirements, schema, API, risks, open questions                   |
 | **[Proposal](./project_proposal.md)** | Business case, personas, user stories, architecture diagram, costs |
+
 
 *IS590R — March 2026*
